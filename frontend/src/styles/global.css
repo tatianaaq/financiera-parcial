@@ -28,3 +28,15 @@
 .login-secure { padding-top: 14px; border-top: 1px solid var(--line); color: var(--sub); font-size: 10px; }
 .login-secure span { color: var(--green); margin-right: 5px; }
 .login-footer { position: fixed; bottom: 15px; color: var(--sub); font-size: 10px; }
+.loading-caption { display: flex; align-items: center; gap: 9px; margin: 2px 0 12px; color: #657a94; font-size: 12px; }
+.loading-spinner { width: 15px; height: 15px; flex: 0 0 15px; border: 2px solid #d8e6f5; border-top-color: #2874b6; border-radius: 50%; animation: loading-spin .7s linear infinite; }
+.skeleton-line { display: block; width: 72%; height: 11px; border-radius: 999px; background: linear-gradient(90deg,#edf2f7 25%,#f8fafc 45%,#edf2f7 65%); background-size: 220% 100%; animation: skeleton-shimmer 1.35s ease-in-out infinite; }
+.skeleton-line-1 { width: 88%; }
+.skeleton-line-2 { width: 56%; }
+.skeleton-row td { height: 42px; }
+.skeleton-metric { display: grid; gap: 9px; min-width: 190px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 11px; background: #fff; }
+.skeleton-metric .skeleton-line:first-child { width: 55%; height: 10px; }
+.skeleton-metric .skeleton-line:last-child { width: 36%; height: 22px; }
+@keyframes skeleton-shimmer { to { background-position: -220% 0; } }
+@keyframes loading-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .loading-spinner,.skeleton-line { animation: none; } }
