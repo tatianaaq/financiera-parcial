@@ -16,10 +16,9 @@
 .loan-filter-row { display: grid; grid-template-columns: minmax(250px,1.5fr) repeat(3,minmax(150px,1fr)); gap: 12px; align-items: end; }
 .loan-filter-row label { display: grid; gap: 6px; min-width: 0; color: #586a82; font-size: 11px; }
 .loan-filter-row .search { width: 100%; }
-.loan-list-metrics { grid-template-columns: repeat(4,minmax(0,1fr)); margin: 0 0 16px; }
-.loan-list-metrics .card,.loan-summary-cards .card { display: grid; gap: 8px; padding: 15px 17px; }
-.loan-list-metrics small,.loan-summary-cards small { color: #74839a; font-size: 11px; }
-.loan-list-metrics b,.loan-summary-cards b { color: #142e5b; font: 750 19px Manrope,sans-serif; }
+.loan-summary-cards .card { display: grid; gap: 8px; padding: 15px 17px; }
+.loan-summary-cards small { color: #74839a; font-size: 11px; }
+.loan-summary-cards b { color: #142e5b; font: 750 19px Manrope,sans-serif; }
 .loan-workspace { display: grid; gap: 16px; }
 .loan-workspace>.panel,.loan-workspace>.cards { margin: 0; }
 .loan-identity { display: grid; grid-template-columns: 1fr 2fr; align-items: center; gap: 20px; padding: 18px 22px; }
@@ -59,4 +58,4 @@
 @media(max-width:760px) { .page-loans .panel-head { align-items: flex-start; flex-direction: column; } .page-loans .panel-head .actions { width: 100%; flex-wrap: wrap; } .loan-detail-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:900px) { .loan-identity { grid-template-columns: 1fr; } .loan-identity-facts { grid-template-columns: repeat(2,minmax(0,1fr)); } .loan-facts-grid { grid-template-columns: 1fr; } .loan-summary-cards { grid-template-columns: repeat(3,minmax(0,1fr)); } }
 @media(max-width:1050px) { .loan-filter-row { grid-template-columns: repeat(2,minmax(0,1fr)); } .loan-filter-row .filter-search { grid-column: span 2; } }
-@media(max-width:650px) { .loan-filter-row { grid-template-columns: 1fr; } .loan-filter-row .filter-search { grid-column: auto; } .loan-list-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } .loan-summary-cards { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:650px) { .loan-filter-row { grid-template-columns: 1fr; } .loan-filter-row .filter-search { grid-column: auto; } .loan-summary-cards { grid-template-columns: repeat(2,minmax(0,1fr)); } }

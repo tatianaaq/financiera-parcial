@@ -42,7 +42,7 @@
 .agency-quick-summary td:last-child { text-align: right; font-weight: 700; color: #1d3d66; }
 .dashboard-welcome { border-color: #dce7f4; background: linear-gradient(115deg,#fff,#edf5fe); }
 .dashboard-welcome .eyebrow { color: #2474c5; }
-.dashboard-metrics { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.dashboard-metrics { grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); }
 .dashboard-metrics .card { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 17px; }
 .dashboard-metrics .metric { margin: 7px 0 3px; color: #142e5b; font-size: 23px; }
 .dashboard-metrics .metric-label { color: #596d88; font-size: 11px; }
@@ -51,7 +51,7 @@
 .dashboard-metric-green .metric-symbol { color: #13855d; background: #e3f6ec; }
 .dashboard-metric-orange .metric-symbol { color: #c47413; background: #fff2dc; }
 .dashboard-metric-purple .metric-symbol { color: #7553c7; background: #f1edff; }
-.dashboard-money-metrics { grid-template-columns: repeat(4,minmax(0,1fr)); margin-top: -4px; }
+.dashboard-money-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: -4px; }
 .dashboard-money-metrics .card { padding: 15px 18px; }
 .dashboard-money-metrics .metric { margin: 8px 0 3px; color: #142e5b; font-size: 21px; }
 .dashboard-money-metrics small { color: #7a8da6; font-size: 10px; }
