@@ -1,0 +1,10 @@
+export type Me = { id: number; username: string; role: 'ADMIN' | 'ADVISOR'; agency: string; agencyId: number };
+export type Client = { id: number; dni: string; names: string; surnames: string; phone?: string; address?: string; department?: string; province?: string; district?: string; ubigeo?: string; addressReference?: string; registeredAt: string; active: boolean; agency?: string; agencyId?: number | null };
+export type Ubigeo = { ubigeo: string; department: string; province: string; district: string };
+export type Loan = { id: number; clientId: number; client: string; dni: string; agency: string; agencyId?: number; principal: number; outstandingPrincipal: number; totalOutstanding: number; annualRate?: number; installments: number; disbursedAt: string; status: string };
+export type Installment = { id: number; number: number; dueDate: string; principal: number; interest: number; paid: number; outstanding: number; status: string };
+export type Agency = { id: number; name: string; enabled: boolean };
+export type AppUser = { id: number; username: string; role: string; agency: string; agencyId: number; enabled: boolean };
+export type Dashboard = { clients: number; activeLoans: number; totalLoans: number; portfolio: number; recovered: number; overdueBalance: number; overdueInstallments: number; agency: string };
+export type AgencyDashboard = { id: number; name: string; enabled: boolean; clients: number; activeLoans: number; totalLoans: number; portfolio: number; recovered: number; overdueBalance: number; overdueInstallments: number };
+export type ClientCreditSummary = { clientId: number; dni: string; loans: number; activeLoans: number; outstandingPrincipal: number; overdueInstallments: number; creditStatus: 'MOROSO' | 'AL_DIA' | 'SIN_CREDITOS' };

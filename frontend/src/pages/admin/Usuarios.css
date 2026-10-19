@@ -1,0 +1,6 @@
+.page-admin { display: grid; gap: 20px; }
+.page-admin .panel-head h3 { margin: 4px 0 0; font-size: 18px; }
+.page-admin .agency-name { margin: 14px 0; font-size: 20px; }
+.page-admin .cards { grid-template-columns: repeat(auto-fit,minmax(175px,1fr)); }
+.page-admin .card { min-height: 140px; }
+.page-admin .tag { white-space: nowrap; }

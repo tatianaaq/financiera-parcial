@@ -1,0 +1,30 @@
+@import './legacy.css';
+.shell { --ink: #17243a; --sub: #718096; --line: #e5eaf1; --green: #2563a6; --pale: #e8f1fb; --bg: #f4f7fb; --orange: #c47a2c; }
+.sidebar { background: #17243a; border-right: 0; color: #f4f7fb; }
+.brand small, .user-badge small, .nav-label { color: #9baac0; }
+.brand-mark { background: #3b82c4; }
+.nav { color: #d0d9e6; }
+.nav.active, .nav:hover { background: #273c59; color: #8fc4ff; }
+.side-bottom { border-color: #33445e; }
+.avatar { background: #273c59; color: #9bcaff; }
+.logout { color: #c5cfdd; }
+.content { --green: #2563a6; --pale: #e8f1fb; }
+.primary { background: #286ba8; }
+.primary:hover { background: #1c568d; }
+.card { border-color: #e6ebf2; box-shadow: 0 7px 22px #203c5a0b; }
+.panel { box-shadow: 0 5px 18px #203c5a08; }
+.login-wrap { background: radial-gradient(ellipse at 14% 18%,#dfedfa 0,transparent 37%),radial-gradient(ellipse at 91% 87%,#e8eff7 0,transparent 34%),linear-gradient(135deg,#f8fafc,#edf3f9); }
+.login-wrap:before,.login-wrap:after { border-color: #286ba812; }
+.login-brand .brand-mark { background: #3b82c4; box-shadow: 0 5px 14px #286ba830; }
+.login-card .eyebrow { color: #286ba8; }
+.login-card input:focus { border-color: #4c91cd; box-shadow: 0 0 0 4px #286ba817; }
+.login-submit { background: #286ba8; box-shadow: 0 5px 14px #286ba825; }
+.login-submit:hover { background: #1c568d; }
+.modal-alert { margin: 0 25px 14px; border-radius: 8px; padding: 11px 14px; color: var(--green); background: var(--pale); font-size: 12px; }
+.modal-alert.error { color: #a53d2d; background: #fdeeea; }
+.login-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 22px; }
+.login-brand b { display: block; font: 700 15px Manrope; }
+.login-brand small { display: block; margin-top: 3px; color: var(--sub); font-size: 10px; }
+.login-secure { padding-top: 14px; border-top: 1px solid var(--line); color: var(--sub); font-size: 10px; }
+.login-secure span { color: var(--green); margin-right: 5px; }
+.login-footer { position: fixed; bottom: 15px; color: var(--sub); font-size: 10px; }
