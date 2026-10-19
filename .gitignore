@@ -15,7 +15,6 @@ frontend/dist/
 
 # Configuraciones locales de Spring Boot
 application-local.properties
-application-postgresql.properties
 application-local.yml
 application-postgresql.yml
 application-local.yaml

@@ -26,6 +26,7 @@ class SecurityConfig {
  @Bean @Order(1) @ConditionalOnProperty(name="app.seed.enabled",havingValue="true") CommandLineRunner seed(AgencyRepository agencies,UserRepository users,PasswordEncoder encoder,
    @Value("${app.admin.username}") String admin,@Value("${app.admin.password}") String adminPassword,
    @Value("${app.seed-password}") String seedPassword){return args->{
+  if(adminPassword.isBlank()||seedPassword.isBlank())throw new IllegalStateException("APP_SEED_ENABLED=true requiere FINANCIERA_V2_ADMIN_PASSWORD y FINANCIERA_V2_SEED_PASSWORD configuradas.");
   String[] names={"Chimbote","Trujillo","Chiclayo","Piura","Tumbes"};
   for(String name:names){Agency a=agencies.findByName(name).orElseGet(()->agencies.save(new Agency(name))); String username="asesor."+name.toLowerCase();
    if(users.findByUsername(username).isEmpty())users.save(new AppUser(username,encoder.encode(seedPassword),"ADVISOR",a));}

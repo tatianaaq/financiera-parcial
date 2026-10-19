@@ -45,7 +45,7 @@ Requisitos: Java 21, Maven 3.9 o posterior, Node.js 20.19 o posterior y npm.
    npm run dev
    ```
 
-4. Abre la dirección local que muestre Vite (por defecto `http://localhost:5173`). Vite reenvía `/api` al backend en `http://localhost:8081`.
+4. Copia `frontend/.env.example` a `frontend/.env` (el valor inicial apunta al puerto 8082, configurado en `backend/.env`) y abre la dirección local que muestre Vite (por defecto `http://localhost:5173`). Vite reenvía `/api` al backend según `VITE_API_PROXY_TARGET`. Si cambias el puerto del backend, actualiza también esta variable y reinicia Vite.
 
 También puedes compilar el frontend y empaquetar los archivos estáticos con Spring Boot:
 
@@ -57,13 +57,15 @@ mvn package
 java -jar target/prestamos-1.0.0.jar
 ```
 
-## PostgreSQL
+## PostgreSQL, Supabase y Render
 
-V2 utiliza PostgreSQL en funcionamiento normal y Hibernate ejecuta `validate`; la aplicación no crea ni altera el esquema. Configura en IntelliJ (Run → Edit Configurations → Environment variables) `SPRING_PROFILES_ACTIVE=postgresql`, `FINANCIERA_V2_DATABASE_URL=jdbc:postgresql://localhost:5432/financiera_v2`, `FINANCIERA_V2_DATABASE_USERNAME` y `FINANCIERA_V2_DATABASE_PASSWORD`. No guardes la contraseña en el repositorio. `pgpass.conf` autentica herramientas libpq como `psql`, pero Spring JDBC no lo utiliza. H2 solo se activa en las pruebas y es una base en memoria efímera.
+El backend aplica el esquema con Flyway al iniciar y Hibernate ejecuta `validate`. Las migraciones están en `backend/src/main/resources/db/migration`. La primera ejecución está pensada para una base o esquema vacío; si Supabase ya contiene tablas o datos, respáldalos y prepara una línea base/importación antes de habilitar Flyway para evitar aplicar `V1` sobre tablas existentes. `V2` comprueba que no haya DNI duplicados antes de crear el índice global; elimina o consolida esos duplicados según corresponda antes de desplegar.
 
-Las contraseñas de inicialización no tienen valores predeterminados en el código. Si habilitas el sembrado inicial de usuarios, configura también `FINANCIERA_V2_ADMIN_PASSWORD` y `FINANCIERA_V2_SEED_PASSWORD` en esa misma configuración de ejecución de IntelliJ. Estas variables se usan solo cuando se crean cuentas iniciales nuevas; no cambian contraseñas de cuentas que ya existen. El sembrado está desactivado por defecto.
+Para desarrollo local, copia `backend/.env.example` a `backend/.env` y completa las credenciales. Spring Boot carga ese archivo tanto al iniciar desde la carpeta del backend como desde la raíz; el `.env` real está ignorado por Git. El URL JDBC de Supabase debe incluir `sslmode=require`. En Render usa el Session pooler de Supabase (host, puerto 5432 y usuario indicados en el panel Connect), que funciona sobre IPv4. La contraseña va en `FINANCIERA_V2_DATABASE_PASSWORD`; no la incluyas en el URL. Render no recibe el archivo `.env`: al crear el Blueprint, carga estos mismos valores en Environment como secretos.
 
-El puerto predeterminado del backend V2 es 8081 (`FINANCIERA_V2_PORT` lo cambia). El backend original conserva su puerto y sus archivos. Las rutinas que sembraban usuarios y reescribían asignaciones de clientes están desactivadas por defecto; no actives `app.seed.enabled` ni `app.migrations.client-agency.enabled` contra una base con datos reales sin un procedimiento revisado.
+En una base nueva no existen cuentas de acceso. Para el primer arranque, configura en `.env` (o en los secretos de Render) `APP_SEED_ENABLED=true`, `FINANCIERA_V2_ADMIN_PASSWORD` y `FINANCIERA_V2_SEED_PASSWORD`, usando contraseñas fuertes y únicas; esto crea el administrador y los asesores iniciales. Cuando confirmes que se puede iniciar sesión, cambia `APP_SEED_ENABLED=false` y vuelve a desplegar. El sembrado no cambia las contraseñas de usuarios existentes.
+
+El puerto local predeterminado es 8082; Render establece `PORT` automáticamente. Para ejecutar el contenedor local: `docker compose -f backend/compose.yaml up --build` desde `financiera-v2`, después de crear `backend/.env`. El Dockerfile está en `backend/Dockerfile` y compila el frontend y el backend desde la raíz del repositorio. El Blueprint está en `backend/render.yaml`; al configurarlo en Render, selecciona ese archivo y deja el Root Directory en `.` para que el contexto incluya también `frontend`. Completa allí `FINANCIERA_V2_DATABASE_URL`, `FINANCIERA_V2_DATABASE_USERNAME`, `FINANCIERA_V2_DATABASE_PASSWORD` y, si aplica, `DNI_API_KEY`. No actives `app.migrations.client-agency.enabled` contra una base con datos reales sin un procedimiento revisado.
 
 ## Reglas que se conservan
 

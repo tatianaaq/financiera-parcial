@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: financiera-v2-backend
+    runtime: docker
+    rootDir: .
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: FINANCIERA_V2_DATABASE_URL
+        sync: false
+      - key: FINANCIERA_V2_DATABASE_USERNAME
+        sync: false
+      - key: FINANCIERA_V2_DATABASE_PASSWORD
+        sync: false
+      - key: FINANCIERA_V2_DATABASE_POOL_SIZE
+        value: "5"
+      - key: FINANCIERA_V2_ADMIN_USERNAME
+        value: admin
+      - key: FINANCIERA_V2_ADMIN_PASSWORD
+        sync: false
+      - key: FINANCIERA_V2_SEED_PASSWORD
+        sync: false
+      - key: APP_SEED_ENABLED
+        value: "false"
+      - key: DNI_API_KEY
+        sync: false
