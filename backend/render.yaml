@@ -25,5 +25,7 @@ services:
         sync: false
       - key: APP_SEED_ENABLED
         value: "false"
+      - key: FINANCIERA_V2_CORS_ALLOWED_ORIGINS
+        sync: false
       - key: DNI_API_KEY
         sync: false

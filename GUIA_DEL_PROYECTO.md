@@ -65,6 +65,10 @@ Para desarrollo local, copia `backend/.env.example` a `backend/.env` y completa 
 
 En una base nueva no existen cuentas de acceso. Para el primer arranque, configura en `.env` (o en los secretos de Render) `APP_SEED_ENABLED=true`, `FINANCIERA_V2_ADMIN_PASSWORD` y `FINANCIERA_V2_SEED_PASSWORD`, usando contraseñas fuertes y únicas; esto crea el administrador y los asesores iniciales. Cuando confirmes que se puede iniciar sesión, cambia `APP_SEED_ENABLED=false` y vuelve a desplegar. El sembrado no cambia las contraseñas de usuarios existentes.
 
+### Frontend separado en Vercel
+
+El backend admite el frontend incluido en Render y también un frontend independiente en Vercel. Para Vercel, importa el repositorio con **Root Directory** `frontend`, **Build Command** `npm run build` y **Output Directory** `dist`. En Vercel define `VITE_API_BASE_URL` con la URL pública del servicio de Render, por ejemplo `https://financiera-v2-backend.onrender.com` (sin `/api` al final). En Render define `FINANCIERA_V2_CORS_ALLOWED_ORIGINS` con el origen exacto de Vercel, por ejemplo `https://mi-financiera.vercel.app` (sin ruta ni `/` final). Si hay varios dominios válidos, sepáralos con comas. Después de cambiar cualquiera de estas variables, vuelve a desplegar ambos servicios. En local, deja `VITE_API_BASE_URL` vacío y Vite usará su proxy; CORS no hace falta para el proxy local.
+
 El puerto local predeterminado es 8082; Render establece `PORT` automáticamente. Para ejecutar el contenedor local: `docker compose -f backend/compose.yaml up --build` desde `financiera-v2`, después de crear `backend/.env`. El Dockerfile está en `backend/Dockerfile` y compila el frontend y el backend desde la raíz del repositorio. El Blueprint está en `backend/render.yaml`; al configurarlo en Render, selecciona ese archivo y deja el Root Directory en `.` para que el contexto incluya también `frontend`. Completa allí `FINANCIERA_V2_DATABASE_URL`, `FINANCIERA_V2_DATABASE_USERNAME`, `FINANCIERA_V2_DATABASE_PASSWORD` y, si aplica, `DNI_API_KEY`. No actives `app.migrations.client-agency.enabled` contra una base con datos reales sin un procedimiento revisado.
 
 ## Reglas que se conservan

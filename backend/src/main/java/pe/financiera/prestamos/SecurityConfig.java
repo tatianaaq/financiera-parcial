@@ -13,14 +13,29 @@ import org.springframework.security.core.userdetails.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration @EnableMethodSecurity
 class SecurityConfig {
  @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
  @Bean UserDetailsService userDetailsService(UserRepository users){return username->users.findByUsername(username).map(u->User.withUsername(u.username).password(u.password).roles(u.role).disabled(!u.enabled).build()).orElseThrow(()->new UsernameNotFoundException("Usuario no encontrado"));}
+ @Bean CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.allowed-origins:}") String allowedOrigins){
+  CorsConfiguration configuration=new CorsConfiguration();
+  configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(",")).map(String::trim).filter(origin->!origin.isEmpty()).toList());
+  configuration.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+  configuration.setAllowedHeaders(List.of("Authorization","Content-Type","Accept","Origin"));
+  configuration.setAllowCredentials(false);
+  UrlBasedCorsConfigurationSource source=new UrlBasedCorsConfigurationSource();
+  source.registerCorsConfiguration("/api/**",configuration);
+  return source;
+ }
  @Bean SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-  return http.csrf(c->c.disable()).headers(h->h.frameOptions(f->f.sameOrigin()))
-   .authorizeHttpRequests(a->a.requestMatchers("/","/index.html","/favicon.ico","/h2-console/**").permitAll().requestMatchers("/api/admin/**").hasRole("ADMIN").requestMatchers("/api/**").authenticated().anyRequest().permitAll())
+  return http.cors(Customizer.withDefaults()).csrf(c->c.disable()).headers(h->h.frameOptions(f->f.sameOrigin()))
+   .authorizeHttpRequests(a->a.requestMatchers("/","/index.html","/favicon.ico","/h2-console/**").permitAll().requestMatchers(HttpMethod.OPTIONS,"/api/**").permitAll().requestMatchers("/api/admin/**").hasRole("ADMIN").requestMatchers("/api/**").authenticated().anyRequest().permitAll())
    .httpBasic(Customizer.withDefaults()).build();
  }
  @Bean @Order(1) @ConditionalOnProperty(name="app.seed.enabled",havingValue="true") CommandLineRunner seed(AgencyRepository agencies,UserRepository users,PasswordEncoder encoder,
