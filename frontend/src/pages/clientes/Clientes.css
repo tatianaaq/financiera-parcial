@@ -73,3 +73,14 @@
   .dni-registration .input-action button { width: 100%; }
   .dni-registration .form-actions { flex-wrap: wrap; }
 }
+
+.existing-national-client { border:1px solid #bdded0; background:#f1faf6; border-radius:10px; padding:16px; }
+.existing-national-client p { margin:6px 0 12px; color:#34526a; }
+.existing-national-client button { margin-top:4px; }
+
+.ruc-lookup { margin: 0 0 20px; }
+.ruc-lookup .national-client-form { max-width:600px; margin-top:14px; }
+.ruc-lookup .national-client-form-row { display:flex; gap:12px; flex-wrap:wrap; }
+.ruc-lookup .national-client-form-row input { flex:1; min-width:180px; }
+.ruc-result { padding:16px; border:1px solid #dee9f4; border-radius:10px; margin-top:15px; }
+.ruc-result p { margin:6px 0; }

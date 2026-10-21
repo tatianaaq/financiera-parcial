@@ -27,7 +27,8 @@ import static org.junit.jupiter.api.Assertions.*;
         "app.seed.enabled=true",
         "app.seed-password=TestPass123!",
         "app.admin.password=TestPass123!",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.flyway.enabled=false"
 })
 @Import(JsonPeTestConfiguration.class)
 class FinancieraSmokeTest {

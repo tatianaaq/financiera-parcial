@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { api, money } from '../../api/api';
+import { api, money, ApiError } from '../../api/api';
 import type { Agency, Client, ClientCreditSummary, Installment, Loan, Me, Ubigeo } from '../../types/models';
 import { Modal } from '../../components/Modal';
 import './Clientes.css';
+import { RucLookup } from './RucLookup';
 
 type DniLookup = { dni: string; names: string; paternalSurname: string; maternalSurname: string; surnames: string; verificationId: string };
 type View = 'directory' | 'detail' | 'credits' | 'loanDetail' | 'schedule';
@@ -24,12 +25,12 @@ function LocationFields({ catalog, values, onChange, idPrefix }: { catalog: Ubig
   </>;
 }
 
-export function Clientes({ me, notify, createLoan, initialAgencyId, selectedClientId, clientOpened }: { me: Me; notify: (message: string, error?: boolean) => void; createLoan: (clientId: number) => void; initialAgencyId?: string; selectedClientId?: number; clientOpened: () => void }) {
+export function Clientes({ me, notify, createLoan, initialAgencyId, selectedClientId, clientOpened, openLoansByDni }: { me: Me; notify: (message: string, error?: boolean) => void; createLoan: (clientId: number) => void; initialAgencyId?: string; selectedClientId?: number; clientOpened: () => void; openLoansByDni: (dni: string) => void }) {
   const [rows, setRows] = useState<Client[]>([]); const [loans, setLoans] = useState<Loan[]>([]); const [summaries, setSummaries] = useState<ClientCreditSummary[]>([]); const [agencies, setAgencies] = useState<Agency[]>([]);
   const [agencyId, setAgencyId] = useState(initialAgencyId ?? ''); const [query, setQuery] = useState(''); const [creditFilter, setCreditFilter] = useState('all'); const [situationFilter, setSituationFilter] = useState('all');
   const [open, setOpen] = useState(false); const [view, setView] = useState<View>('directory'); const [selectedClient, setSelectedClient] = useState<Client>();
   const [clientLoans, setClientLoans] = useState<Loan[]>([]); const [schedule, setSchedule] = useState<{ loan: Loan; rows: Installment[] }>();
-  const [dni, setDni] = useState(''); const [identity, setIdentity] = useState<DniLookup>(); const [phone, setPhone] = useState('');
+  const [existingClient, setExistingClient] = useState<{ dni: string; names: string; surnames: string; agency: string }>(); const [dni, setDni] = useState(''); const [identity, setIdentity] = useState<DniLookup>(); const [phone, setPhone] = useState('');
   const [dniInputError, setDniInputError] = useState(''); const [phoneInputError, setPhoneInputError] = useState('');
   const [ubigeos, setUbigeos] = useState<Ubigeo[]>([]); const [domicile, setDomicile] = useState<DomicileForm>({ department: '', province: '', district: '', ubigeo: '', address: '', addressReference: '' });
   const [addressEditorOpen, setAddressEditorOpen] = useState(false); const [addressEdit, setAddressEdit] = useState<DomicileForm>(); const [addressEditBusy, setAddressEditBusy] = useState(false); const [addressEditError, setAddressEditError] = useState('');
@@ -68,11 +69,11 @@ export function Clientes({ me, notify, createLoan, initialAgencyId, selectedClie
     .filter(c => situationFilter === 'all' || summaryByClient.get(c.id)?.creditStatus === situationFilter);
   const validDni = /^\d{8}$/.test(dni); const validPhone = /^9\d{8}$/.test(phone);
   const canSave = Boolean(identity && identity.dni === dni && validDni && validPhone && !dniInputError && !phoneInputError && !lookupBusy && !saveBusy);
-  function resetForm() { requestVersion.current++; lookupController.current?.abort(); currentDni.current = ''; setDni(''); setIdentity(undefined); setPhone(''); setDniInputError(''); setPhoneInputError(''); setDomicile({ department: '', province: '', district: '', ubigeo: '', address: '', addressReference: '' }); setLookupBusy(false); setSaveBusy(false); setFormError(''); setFormMessage(''); }
+  function resetForm() { requestVersion.current++; lookupController.current?.abort(); currentDni.current = ''; setDni(''); setExistingClient(undefined); setIdentity(undefined); setPhone(''); setDniInputError(''); setPhoneInputError(''); setDomicile({ department: '', province: '', district: '', ubigeo: '', address: '', addressReference: '' }); setLookupBusy(false); setSaveBusy(false); setFormError(''); setFormMessage(''); }
   function changeDni(value: string) {
     if (!/^\d{0,8}$/.test(value)) { setDniInputError('El DNI debe contener exactamente 8 dígitos'); return; }
     setDniInputError(value.length > 0 && value.length < 8 ? 'El DNI debe contener exactamente 8 dígitos' : '');
-    requestVersion.current++; lookupController.current?.abort(); currentDni.current = value; setDni(value); setIdentity(undefined); setFormError(''); setFormMessage(value.length === 8 ? 'Al cambiar el DNI, debes consultarlo nuevamente.' : ''); setLookupBusy(false);
+    requestVersion.current++; lookupController.current?.abort(); currentDni.current = value; setDni(value); setExistingClient(undefined); setIdentity(undefined); setFormError(''); setFormMessage(value.length === 8 ? 'Al cambiar el DNI, debes consultarlo nuevamente.' : ''); setLookupBusy(false);
   }
   function changePhone(value: string) {
     if (!/^(?:|9\d{0,8})$/.test(value)) { setPhoneInputError('El celular debe tener 9 dígitos y comenzar con 9'); return; }
@@ -82,10 +83,22 @@ export function Clientes({ me, notify, createLoan, initialAgencyId, selectedClie
     if (!validDni || lookupBusy || saveBusy) return;
     lookupController.current?.abort(); const controller = new AbortController(); lookupController.current = controller;
     const version = ++requestVersion.current; const requestedDni = dni; setLookupBusy(true); setIdentity(undefined); setFormError(''); setFormMessage('Consultando DNI…');
-    try { const result = await api<DniLookup>('/clients/dni-lookup', { method: 'POST', body: JSON.stringify({ dni: requestedDni }), signal: controller.signal });
+    try {
+      // Primero busca localmente en la base nacional. Esto NO gasta una consulta de JSON.pe.
+      try {
+        const existing = await api<{dni:string; names:string; surnames:string; agency:string}>(`/clients/national?dni=${requestedDni}`, { signal: controller.signal });
+        if (version !== requestVersion.current || currentDni.current !== requestedDni) return;
+        setExistingClient(existing);
+        setFormMessage('Cliente existente: no necesitas volver a registrarlo.');
+        return;
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        if (!(err instanceof ApiError && err.status === 404)) throw err;
+      }
+      const result = await api<DniLookup>('/clients/dni-lookup', { method: 'POST', body: JSON.stringify({ dni: requestedDni }), signal: controller.signal });
       if (version !== requestVersion.current || currentDni.current !== requestedDni) return;
       if (result.dni !== requestedDni || !result.verificationId) throw new Error('La respuesta no corresponde al DNI consultado.');
-      setIdentity(result); setFormMessage('Datos obtenidos correctamente.');
+      setIdentity(result); setFormMessage('DNI disponible para registrar. Datos verificados.');
     } catch (error) { if (controller.signal.aborted || version !== requestVersion.current) return; setIdentity(undefined); setFormMessage(''); setFormError(error instanceof Error ? error.message : 'No se pudo consultar el DNI.'); }
     finally { if (version === requestVersion.current) setLookupBusy(false); }
   }
@@ -153,16 +166,20 @@ export function Clientes({ me, notify, createLoan, initialAgencyId, selectedClie
   </div>;
 
   return <div className="page-clients">
+    <RucLookup />
     <section className="panel client-filters"><div className="panel-head"><div><span className="eyebrow">{me.role === 'ADMIN' ? 'DIRECTORIO NACIONAL' : `CARTERA DE ${me.agency.toUpperCase()}`}</span><h3>Directorio de clientes</h3><p className="muted">{me.role === 'ADMIN' ? 'Consulta clientes y sus créditos en todas las sedes.' : `Clientes registrados en la agencia ${me.agency}.`}</p></div>{me.role === 'ADVISOR' && <button className="primary" onClick={() => { resetForm(); setOpen(true); }}>+ Nuevo cliente</button>}</div><div className="filter-row"><label className="filter-search"><span>Buscar por DNI o nombre</span><input className="search" placeholder="Ingresa DNI o nombre del cliente" value={query} onChange={e => { if (validDirectorySearch(e.target.value)) setQuery(e.target.value); }} onPaste={e => { if (!validDirectorySearch(e.clipboardData.getData('text'))) e.preventDefault(); }} /></label>{me.role === 'ADMIN' && <label><span>Agencia</span><select className="search" value={agencyId} onChange={e => setAgencyId(e.target.value)}><option value="">Todas las agencias</option>{agencies.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>}<label><span>Créditos</span><select className="search" value={creditFilter} onChange={e => setCreditFilter(e.target.value)}><option value="all">Todos</option><option value="active">Con créditos activos</option><option value="none">Sin créditos activos</option></select></label><label><span>Situación crediticia</span><select className="search" value={situationFilter} onChange={e => setSituationFilter(e.target.value)}><option value="all">Todas</option><option value="AL_DIA">Al día</option><option value="MOROSO">Moroso</option><option value="SIN_CREDITOS">Sin créditos</option></select></label></div></section>
     <section className="panel"><div className="panel-head"><div><span className="eyebrow">{me.role === 'ADMIN' ? 'VISTA CONSOLIDADA' : 'DIRECTORIO'}</span><h3>Listado de clientes</h3></div><span className="tag">{visible.length} clientes</span></div><div className="table-scroll"><table><thead><tr><th>DNI</th><th>Cliente</th>{me.role === 'ADMIN' && <th>Agencia</th>}<th>Celular</th><th>Créditos activos</th><th>Situación crediticia</th><th>Acciones</th></tr></thead><tbody>{visible.length ? visible.map(client => { const summary = summaryByClient.get(client.id); const active = summary?.activeLoans ?? activeCounts.get(client.id) ?? 0; const status = client.active ? (summary?.creditStatus ?? 'SIN_CREDITOS') : 'INACTIVO'; return <tr key={client.id}><td>{client.dni}</td><td><b>{client.names} {client.surnames}</b></td>{me.role === 'ADMIN' && <td>{client.agency || '—'}</td>}<td>{client.phone || '—'}</td><td>{active}</td><td><span className={`tag ${status === 'MOROSO' || status === 'INACTIVO' ? 'red' : status === 'SIN_CREDITOS' ? 'neutral' : ''}`}>{status === 'MOROSO' ? 'Moroso' : status === 'AL_DIA' ? 'Al día' : status === 'INACTIVO' ? 'Inactivo' : 'Sin créditos'}</span></td><td className="actions-cell"><button className="secondary compact" onClick={() => void openClient(client, 'detail')}>Ver detalle</button><button className="secondary compact" onClick={() => void openClient(client, 'credits')}>Ver créditos <span className="count-pill">{loanCounts.get(client.id) ?? 0}</span></button></td></tr>; }) : <tr><td colSpan={me.role === 'ADMIN' ? 7 : 6} className="empty">No hay clientes que coincidan con estos filtros.</td></tr>}</tbody></table></div></section>
     {open && <Modal title="Registrar cliente" close={() => { setOpen(false); resetForm(); }}><form className="form-grid dni-registration" onSubmit={save}>
       <label className="span">DNI<div className="input-action"><input type="text" aria-label="DNI" required inputMode="numeric" autoComplete="off" pattern="[0-9]{8}" value={dni} onChange={event => changeDni(event.target.value)} onPaste={event => { const input = event.currentTarget; const pasted = event.clipboardData.getData('text'); const start = input.selectionStart ?? input.value.length; const end = input.selectionEnd ?? start; const candidate = input.value.slice(0, start) + pasted + input.value.slice(end); if (!/^\d+$/.test(pasted) || candidate.length > 8) { event.preventDefault(); setDniInputError('El DNI debe contener exactamente 8 dígitos'); } }} aria-invalid={Boolean(dniInputError || (dni.length > 0 && !validDni))} /><button className="secondary" type="button" disabled={!validDni || lookupBusy || saveBusy} onClick={() => void lookupDni()}>{lookupBusy ? 'Consultando…' : 'Consultar DNI'}</button></div>{(dniInputError || (dni.length > 0 && !validDni)) ? <small className="field-hint error" role="alert">El DNI debe contener exactamente 8 dígitos</small> : <small className="field-hint">Ingresa ocho dígitos y consulta para cargar la identidad verificada.</small>}</label>
+      {existingClient && <div className="existing-national-client span" role="status"><strong>Cliente existente</strong><p>{existingClient.names} {existingClient.surnames} · Registrado en {existingClient.agency}.</p><p>Ya está en la base nacional. Puedes revisar sus préstamos y solicitar uno nuevo sin volver a registrarlo.</p><button type="button" className="primary" onClick={() => { const selectedDni = existingClient.dni; setOpen(false); resetForm(); openLoansByDni(selectedDni); }}>Ir a Préstamos con este DNI →</button></div>}
       {formMessage && <p className={`dni-status span${identity ? ' success' : ''}`} role="status">{formMessage}</p>}{formError && <p className="dni-status error span" role="alert">{formError}</p>}
+      {!existingClient && <>
       <label>Nombres<input value={identity?.names ?? ''} readOnly aria-readonly="true" placeholder="Se completará al consultar el DNI" /></label><label>Apellido paterno<input value={identity?.paternalSurname ?? ''} readOnly aria-readonly="true" placeholder="—" /></label><label>Apellido materno<input value={identity?.maternalSurname ?? ''} readOnly aria-readonly="true" placeholder="—" /></label>
       <label>Celular<input type="text" required inputMode="numeric" autoComplete="tel-national" pattern="9[0-9]{8}" value={phone} onChange={event => changePhone(event.target.value)} onPaste={event => { const input = event.currentTarget; const pasted = event.clipboardData.getData('text'); const start = input.selectionStart ?? input.value.length; const end = input.selectionEnd ?? start; const candidate = input.value.slice(0, start) + pasted + input.value.slice(end); if (!/^\d+$/.test(pasted) || !/^(?:|9\d{0,8})$/.test(candidate)) { event.preventDefault(); setPhoneInputError('El celular debe tener 9 dígitos y comenzar con 9'); } }} aria-invalid={Boolean(phoneInputError || (phone.length > 0 && !validPhone))} />{phoneInputError || (phone.length > 0 && !validPhone) ? <small className="field-hint error" role="alert">El celular debe tener 9 dígitos y comenzar con 9</small> : <small className="field-hint">Nueve dígitos; debe comenzar con 9.</small>}</label>
       <fieldset className="domicile-fields span"><legend>Domicilio actual del cliente</legend><LocationFields idPrefix="new" catalog={ubigeos} values={domicile} onChange={setDomicile} /></fieldset>
       <label className="span">Agencia asignada<input value={me.agency} readOnly aria-readonly="true" /></label>
       <div className="form-actions span"><button className="secondary" type="button" disabled={saveBusy} onClick={() => { setOpen(false); resetForm(); }}>Cancelar</button><button className="primary" disabled={!canSave}>{saveBusy ? 'Guardando…' : 'Guardar cliente'}</button></div>
+      </>}
     </form></Modal>}
   </div>;
 }
