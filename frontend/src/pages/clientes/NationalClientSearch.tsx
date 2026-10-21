@@ -11,6 +11,7 @@ type NationalLoan = {
   installments: number;
   disbursedAt: string;
   status: string;
+  documentType?: string; borrowerDocument?: string; borrowerName?: string;
 };
 
 export type NationalClient = {
@@ -149,11 +150,12 @@ export function NationalClientSearch({ canGrantLoans = false, onRequestLoan, onR
           </div>
           <div className="table-scroll">
             <table>
-              <thead><tr><th>Préstamo</th><th>Sede</th><th>Capital original</th><th>Saldo capital</th><th>Cuotas</th><th>Estado</th><th>Consulta</th></tr></thead>
+              <thead><tr><th>Préstamo</th><th>Documento utilizado</th><th>Sede</th><th>Capital original</th><th>Saldo capital</th><th>Cuotas</th><th>Estado</th><th>Consulta</th></tr></thead>
               <tbody>
                 {client.loans.map(loan => (
                   <tr key={loan.id}>
                     <td>PR-{String(loan.id).padStart(6, '0')}</td>
+                    <td>{loan.documentType || 'DNI'} {loan.borrowerDocument || client.dni}{loan.documentType === 'RUC20' && loan.borrowerName ? <small className="field-hint"> {loan.borrowerName}</small> : null}</td>
                     <td>{loan.agency}</td>
                     <td>{money(loan.principal)}</td>
                     <td>{money(loan.outstandingPrincipal)}</td>
@@ -162,7 +164,7 @@ export function NationalClientSearch({ canGrantLoans = false, onRequestLoan, onR
                     <td><button type="button" className="link" disabled={scheduleBusy} onClick={() => { void openSchedule(loan); }}>Ver cronograma</button></td>
                   </tr>
                 ))}
-                {client.loans.length === 0 && <tr><td colSpan={7}>Este cliente todavía no tiene préstamos registrados.</td></tr>}
+                {client.loans.length === 0 && <tr><td colSpan={8}>Este cliente todavía no tiene préstamos registrados.</td></tr>}
               </tbody>
             </table>
           </div>

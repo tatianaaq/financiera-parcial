@@ -133,6 +133,32 @@ class DniVerificationService {
         return new DniLookupResult(dni, identity.names(), identity.paternalSurname(), identity.maternalSurname(), identity.surnames(), ticketId);
     }
 
+    /** La vinculación de RUC exige consulta reciente aun cuando el DNI ya existe en la base. */
+    DniLookupResult lookupForAssociation(String dni, AppUser user) {
+        if (user.agency == null || !user.agency.enabled || !"ADVISOR".equals(user.role))
+            throw new DniLookupException(403,"Solo un asesor de una sede habilitada puede verificar el DNI.");
+        if (!dni.matches("\\d{8}") || !clients.existsByDni(dni))
+            throw new DniLookupException(404,"Primero registra la persona con DNI verificado en Clientes.");
+        Instant now=Instant.now();
+        enforceRateLimit(user.username,now);
+        VerifiedIdentity identity=fetchOrJoin(dni,dni,now);
+        String ticket=UUID.randomUUID().toString();
+        tickets.put(ticket,new DniTicket(user.username,user.agency.id,identity,now.plus(TICKET_LIFETIME)));
+        tickets.entrySet().removeIf(entry -> entry.getValue().expiresAt().isBefore(now));
+        return new DniLookupResult(dni,identity.names(),identity.paternalSurname(),identity.maternalSurname(),identity.surnames(),ticket);
+    }
+
+    /** Alta integrada desde RUC: verifica DNI aunque no exista como cliente; la BD decide si se reutiliza. */
+    VerifiedIdentity verifyForOnboarding(String dni, AppUser user) {
+        if (user.agency == null || !user.agency.enabled || !"ADVISOR".equals(user.role))
+            throw new DniLookupException(403, "Solo un asesor de sede habilitada puede verificar un DNI.");
+        if (dni == null || !dni.matches("\\d{8}"))
+            throw new DniLookupException(400, "Ingresa un DNI de ocho dígitos.");
+        Instant now = Instant.now();
+        enforceRateLimit(user.username, now);
+        return fetchOrJoin(dni, dni, now);
+    }
+
     private VerifiedIdentity fetchOrJoin(String cacheKey, String dni, Instant now) {
         CachedResult cached = recentResults.get(cacheKey);
         if (cached != null && cached.expiresAt().isAfter(now)) return cached.identity();

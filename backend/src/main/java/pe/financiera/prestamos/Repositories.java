@@ -10,6 +10,7 @@ interface UserRepository extends JpaRepository<AppUser,Long>{ Optional<AppUser> 
 interface ClientRepository extends JpaRepository<Client,Long>{
  Optional<Client> findByIdAndAgency_Id(Long id,Long agencyId);
  boolean existsByDni(String dni);
+ Optional<Client> findByDni(String dni);
  @Query("select c from Client c where c.agency.id=:agencyId and c.dni=:dni") Optional<Client> findForAgency(@Param("agencyId") Long agencyId,@Param("dni") String dni);
  @Query("select c from Client c where c.agency.id=:agencyId and (lower(c.dni) like lower(concat('%',:q,'%')) or lower(c.names) like lower(concat('%',:q,'%')) or lower(c.surnames) like lower(concat('%',:q,'%'))) order by c.id desc") List<Client> searchForAgency(@Param("agencyId") Long agencyId,@Param("q") String q);
  List<Client> findAllByAgency_IdOrderByIdDesc(Long agencyId);
@@ -22,11 +23,11 @@ interface ClientRepository extends JpaRepository<Client,Long>{
  @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select c from Client c where c.id=:id") Optional<Client> findByIdForUpdate(@Param("id") Long id);
 }
 interface LoanRepository extends JpaRepository<Loan,Long>{
- @EntityGraph(attributePaths={"client","agency","createdBy"}) List<Loan> findAllByOrderByIdDesc();
- @EntityGraph(attributePaths={"client","agency","createdBy"}) List<Loan> findByAgencyIdOrderByIdDesc(Long agencyId);
+ @EntityGraph(attributePaths={"client","agency","createdBy","company"}) List<Loan> findAllByOrderByIdDesc();
+ @EntityGraph(attributePaths={"client","agency","createdBy","company"}) List<Loan> findByAgencyIdOrderByIdDesc(Long agencyId);
  @Query("select coalesce(sum(l.outstandingPrincipal),0) from Loan l where l.client.id=:id and l.status='ACTIVO'") java.math.BigDecimal pendingCapital(@Param("id") Long id);
  @Query("select coalesce(sum(l.outstandingPrincipal),0) from Loan l where l.client.dni=:dni and l.status='ACTIVO'") java.math.BigDecimal pendingCapitalByDni(@Param("dni") String dni);
- @Query("select coalesce(sum(l.principal),0) from Loan l where l.client.dni=:dni and l.status='ACTIVO'") java.math.BigDecimal pendingOriginalCapitalByDni(@Param("dni") String dni);
+ @Query("select coalesce(sum(l.principal),0) from Loan l where l.responsibleDni=:dni and l.status='ACTIVO'") java.math.BigDecimal pendingOriginalCapitalByDni(@Param("dni") String dni);
  @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select l from Loan l where l.id=:id") Optional<Loan> findByIdForUpdate(@Param("id") Long id);
  List<Loan> findByClientIdAndStatus(Long clientId,String status);
  List<Loan> findByClientIdOrderByIdDesc(Long clientId);
@@ -36,3 +37,6 @@ interface LoanRepository extends JpaRepository<Loan,Long>{
 interface InstallmentRepository extends JpaRepository<Installment,Long>{ List<Installment> findByLoanIdOrderByNumber(Long loanId); List<Installment> findByLoanIdInOrderByDueDate(Collection<Long> ids); }
 interface PaymentRepository extends JpaRepository<Payment,Long>{ List<Payment> findAllByOrderByIdDesc(); List<Payment> findByLoanIdOrderByPaidAtDesc(Long id); boolean existsByMethodAndReference(String method,String reference); }
 interface AllocationRepository extends JpaRepository<PaymentAllocation,Long>{}
+
+interface CompanyRepository extends JpaRepository<Company,Long>{ Optional<Company> findByRuc(String ruc); }
+interface DocumentLinkRepository extends JpaRepository<DocumentLink,Long>{ Optional<DocumentLink> findByDocumentNumber(String documentNumber); }

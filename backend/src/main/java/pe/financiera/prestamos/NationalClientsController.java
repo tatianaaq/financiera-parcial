@@ -67,7 +67,7 @@ class NationalClientsController {
         BigDecimal available = NATIONAL_LIMIT.subtract(activeCapital).max(BigDecimal.ZERO);
         boolean overdue = loans.stream().filter(l -> "ACTIVO".equals(l.status))
                 .flatMap(l -> byLoanId.getOrDefault(l.id, List.of()).stream())
-                .anyMatch(i -> i.dueDate.isBefore(LocalDate.now()) && i.outstanding().signum() > 0);
+                .anyMatch(i -> i.dueDate.isBefore(LoanCalendar.todayInLima()) && i.outstanding().signum() > 0);
 
         List<NationalLoanView> loanViews = loans.stream().map(l -> new NationalLoanView(
                 l.id,
@@ -77,7 +77,7 @@ class NationalClientsController {
                 l.outstandingPrincipal,
                 l.installments,
                 l.disbursedAt,
-                l.status
+                l.status, l.documentType, l.borrowerDocument, l.borrowerName
         )).toList();
 
         return new NationalClientResult(client.id, client.dni, client.names, client.surnames, client.active,
@@ -125,7 +125,8 @@ class NationalClientsController {
 }
 
 record NationalLoanView(Long id, String agency, Long agencyId, BigDecimal principal,
-                        BigDecimal outstandingPrincipal, int installments, LocalDate disbursedAt, String status) {}
+                        BigDecimal outstandingPrincipal, int installments, LocalDate disbursedAt, String status,
+                        String documentType, String borrowerDocument, String borrowerName) {}
 
 record NationalClientResult(Long id, String dni, String names, String surnames, boolean active,
                             String agency, Long agencyId, BigDecimal activeOriginalCapital,

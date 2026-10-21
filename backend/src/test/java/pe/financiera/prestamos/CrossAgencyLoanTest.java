@@ -36,7 +36,7 @@ class CrossAgencyLoanTest {
     ResponseEntity<Map> send(String agency, String url, String amount) {
         return rest.withBasicAuth("asesor."+agency, "TestPass123!")
                 .postForEntity("http://localhost:"+port+url,
-                    Map.of("clientId",clientId,"amount",amount,"installments","6"),Map.class);
+                    Map.of("clientId",clientId,"amount",amount,"installments","6","customerAccepted",true,"quoteDate",LoanCalendar.todayInLima().toString()),Map.class);
     }
 
     @Test void crossOfficeLoanCanBeEvaluatedWithinRemainingNationalLimit() {

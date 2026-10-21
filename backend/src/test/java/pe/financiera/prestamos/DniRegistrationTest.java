@@ -48,9 +48,9 @@ class DniRegistrationTest {
                 new HttpEntity<>(clientInput(dni, body.get("names"), body.get("surnames"), "912345678", body.get("verificationId"))), Map.class);
         assertEquals(HttpStatus.OK, saved.getStatusCode());
         assertEquals("ANA MARIA", ((Map<?, ?>) saved.getBody()).get("names"));
-        assertEquals(1, advisor.getForObject(url("/api/clients"), java.util.List.class).size());
-        assertTrue(advisor("chimbote").getForObject(url("/api/clients"), java.util.List.class).isEmpty(),
-                "La sede se asigna desde la sesión y el cliente no aparece en otra agencia.");
+        assertEquals(1L, countDniInAgency(advisor, dni), "El DNI de esta prueba debe aparecer una sola vez.");
+        assertEquals(0L, countDniInAgency(advisor("chimbote"), dni),
+                "La sede se asigna desde la sesión y este DNI no aparece en otra agencia.");
         assertEquals(1, provider.callsFor(dni));
     }
 
@@ -87,7 +87,8 @@ class DniRegistrationTest {
                 new HttpEntity<>(clientInput(dni, "NOMBRE MANIPULADO", ticket.get("surnames"), "912345678", ticket.get("verificationId"))), Map.class);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertTrue(response.getBody().get("error").toString().contains("coincidir"));
-        assertTrue(advisor("piura").getForObject(url("/api/clients"), java.util.List.class).isEmpty());
+        assertEquals(0L, countDniInAgency(advisor("piura"), dni),
+                "No debe guardarse la identidad manipulada.");
     }
 
     @Test
@@ -138,6 +139,25 @@ class DniRegistrationTest {
     }
 
     @Test
+    void registraSoloConDniVerificadoSinCelularNiDomicilio() {
+        String dni = "82100011";
+        provider.respond(dni, identity(dni));
+        TestRestTemplate trujillo = advisor("trujillo");
+        Map result = lookup(trujillo, dni).getBody();
+        ResponseEntity<Map> saved = trujillo.exchange(url("/api/clients"), HttpMethod.POST,
+                new HttpEntity<>(Map.of("dni", dni, "names", result.get("names"),
+                        "surnames", result.get("surnames"), "verificationId", result.get("verificationId"))), Map.class);
+        assertEquals(HttpStatus.OK, saved.getStatusCode());
+        assertEquals(dni, saved.getBody().get("dni"));
+        assertNull(saved.getBody().get("phone"));
+        assertNull(saved.getBody().get("address"));
+        assertNull(saved.getBody().get("ubigeo"));
+        assertEquals("Trujillo", saved.getBody().get("agency"));
+        assertEquals(1, provider.callsFor(dni));
+        assertEquals(HttpStatus.CONFLICT, lookup(advisor("piura"), dni).getStatusCode());
+    }
+
+    @Test
     void exigeCelularPeruanoDeNueveDigitos() {
         String dni = "82100010";
         provider.respond(dni, identity(dni));
@@ -145,7 +165,25 @@ class DniRegistrationTest {
         ResponseEntity<Map> response = advisor("trujillo").exchange(url("/api/clients"), HttpMethod.POST,
                 new HttpEntity<>(clientInput(dni, ticket.get("names"), ticket.get("surnames"), "812345678", ticket.get("verificationId"))), Map.class);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertTrue(advisor("trujillo").getForObject(url("/api/clients"), java.util.List.class).isEmpty());
+        assertEquals(0L, countDniInAgency(advisor("trujillo"), dni),
+                "Un teléfono inválido no debe registrar ese DNI.");
+    }
+
+    /**
+     * Estas pruebas comparten el contexto H2: otras pruebas pueden haber creado
+     * clientes en la misma agencia. Comprobamos el DNI bajo prueba, no el
+     * tamano total del directorio, para evitar dependencia del orden JUnit.
+     */
+    private long countDniInAgency(TestRestTemplate advisor, String dni) {
+        java.util.List<?> clients = advisor.getForObject(url("/api/clients"), java.util.List.class);
+        assertNotNull(clients);
+        long matches = 0;
+        for (Object item : clients) {
+            if (item instanceof Map<?, ?> client && dni.equals(client.get("dni"))) {
+                matches++;
+            }
+        }
+        return matches;
     }
 
     private JsonPeDniResponse identity(String dni) {
