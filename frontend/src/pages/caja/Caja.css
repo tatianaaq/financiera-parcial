@@ -1,0 +1,361 @@
+
+/* CAJA REAL - FINANCIERA V2 */
+
+.caja-real {
+    display: grid;
+    gap: 20px;
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    color: #173153;
+    font-family: inherit;
+}
+
+.caja-real-heading,
+.caja-real-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.caja-real-heading h3,
+.caja-real-panel-head h3 {
+    margin: 0 0 6px;
+    color: #152d51;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.caja-real-heading p,
+.caja-real-panel-head p {
+    margin: 0;
+    color: #7d90a9;
+    font-size: 12px;
+}
+
+.caja-real-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.caja-real-card,
+.caja-real-panel {
+    min-width: 0;
+    padding: 23px;
+    border: 1px solid #e1e9f4;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgba(20, 56, 101, 0.045);
+}
+
+.caja-real-card {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+}
+
+.caja-real-card small,
+.caja-real-facts small {
+    color: #788ca7;
+    font-size: 11px;
+}
+
+.caja-real-card strong {
+    color: #17345b;
+    font-size: clamp(22px, 2.4vw, 30px);
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.caja-real-card strong.open {
+    color: #15885a;
+}
+
+.caja-real-card strong.closed {
+    color: #9e6b19;
+}
+
+.caja-real-card p {
+    margin: 0;
+    color: #8494a8;
+    font-size: 11px;
+}
+
+.caja-real-panel-head {
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.caja-real-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.caja-real-facts > div {
+    display: grid;
+    gap: 7px;
+}
+
+.caja-real-facts strong {
+    color: #294b70;
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.caja-real-form {
+    display: grid;
+    gap: 15px;
+}
+
+.caja-real-form label {
+    display: grid;
+    gap: 8px;
+    max-width: 580px;
+    color: #354f70;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.caja-real-form input,
+.caja-real-form select,
+.caja-real-form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid #d6e2f0;
+    border-radius: 9px;
+    outline: none;
+    background: #fff;
+    color: #244263;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.caja-real-form textarea {
+    resize: vertical;
+}
+
+.caja-real-form input:focus,
+.caja-real-form select:focus,
+.caja-real-form textarea:focus {
+    border-color: #0968f7;
+    box-shadow: 0 0 0 3px rgba(9, 104, 247, 0.1);
+}
+
+.caja-real-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.caja-real-subform {
+    padding: 20px;
+    border: 1px solid #dce7f4;
+    border-radius: 11px;
+    background: #f8fbff;
+}
+
+.caja-real-subform h4 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.caja-real-help {
+    margin: 0;
+    color: #8595a9;
+    font-size: 11px;
+}
+
+.caja-real-actions,
+.caja-real-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.caja-real-primary,
+.caja-real-outline,
+.caja-real-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.caja-real-primary {
+    border: 1px solid #0968f7;
+    background: #0968f7;
+    color: #fff;
+}
+
+.caja-real-primary:hover {
+    background: #005bd9;
+}
+
+.caja-real-outline {
+    border: 1px solid #ccdcf0;
+    background: #fff;
+    color: #2265ae;
+}
+
+.caja-real-outline:hover {
+    background: #f0f6ff;
+}
+
+.caja-real-danger {
+    border: 1px solid #dfb3b3;
+    background: #fff6f5;
+    color: #a63b3b;
+}
+
+.caja-real-danger:hover {
+    background: #ffeae7;
+}
+
+.caja-real button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.caja-real-error,
+.caja-real-message {
+    padding: 13px 15px;
+    border-radius: 9px;
+    font-size: 12px;
+}
+
+.caja-real-error {
+    border: 1px solid #efcaca;
+    background: #fff1f1;
+    color: #b43c3c;
+}
+
+.caja-real-message {
+    border: 1px solid #c3e7d3;
+    background: #ecf9f1;
+    color: #22774f;
+}
+
+.caja-real-count {
+    padding: 7px 11px;
+    border-radius: 20px;
+    background: #eaf3ff;
+    color: #206bbd;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.caja-real-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e2eaf4;
+    border-radius: 9px;
+}
+
+.caja-real-table {
+    width: 100%;
+    min-width: 650px;
+    border-collapse: collapse;
+}
+
+.caja-real-table th {
+    padding: 13px;
+    background: #f0f5fb;
+    color: #687f9c;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.caja-real-table td {
+    padding: 14px 13px;
+    border-top: 1px solid #e9eef6;
+    color: #314d70;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.caja-real-table tbody tr:hover td {
+    background: #f8fbff;
+}
+
+.caja-real-type,
+.caja-real-state {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.caja-real-type.income,
+.caja-real-type.replenishment,
+.caja-real-state.open {
+    background: #e6f7ee;
+    color: #168558;
+}
+
+.caja-real-type.expense {
+    background: #fff0ee;
+    color: #b44747;
+}
+
+.caja-real-type.incident,
+.caja-real-state.closed {
+    background: #eef1f6;
+    color: #677b95;
+}
+
+.caja-real-empty {
+    padding: 30px 14px !important;
+    color: #8493a9 !important;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    .caja-real-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .caja-real-cards,
+    .caja-real-facts,
+    .caja-real-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .caja-real-card,
+    .caja-real-panel {
+        padding: 17px;
+    }
+
+    .caja-real-toolbar,
+    .caja-real-actions {
+        justify-content: stretch;
+    }
+
+    .caja-real-toolbar button,
+    .caja-real-actions button {
+        width: 100%;
+    }
+}

@@ -60,6 +60,20 @@ class RucDocumentLinksController {
         return identity.lookupForAssociation(input.dni(),actor(auth));
     }
 
+    /** Directorio de documentos RUC vinculados; asesores solo ven su sede. */
+    @GetMapping("/directory") @Transactional(readOnly=true)
+    List<RucLinkView> directory(Authentication auth) {
+        AppUser user = users.findByUsername(auth.getName()).orElseThrow();
+        if (!user.enabled) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Usuario deshabilitado.");
+        boolean admin = "ADMIN".equals(user.role);
+        if (!admin && (!"ADVISOR".equals(user.role) || user.agency == null || !user.agency.enabled))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes consultar este directorio.");
+        return links.findAll().stream()
+                .filter(link -> admin || (link.client.agency != null && Objects.equals(link.client.agency.id, user.agency.id)))
+                .sorted(Comparator.comparing((DocumentLink link) -> link.checkedAt).reversed())
+                .map(this::view).toList();
+    }
+
     @GetMapping("/links/{ruc}") @Transactional(readOnly=true)
     RucLinkView savedLink(@PathVariable String ruc,Authentication auth){
         // Lectura nacional permitida a usuarios autenticados; escritura solo a asesores.

@@ -1,22 +1,413 @@
-.national-client-lookup { margin-bottom: 18px; }
-.national-client-form { margin-top: 16px; max-width: 620px; }
-.national-client-form label { display: block; margin-bottom: 7px; font-size: 0.83rem; font-weight: 600; }
-.national-client-form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.national-client-form-row input { flex: 1 1 200px; min-width: 150px; }
-.national-client-error { margin-top: 12px; color: #b42318; font-weight: 600; }
-.national-client-results { margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 18px; }
-.national-client-identity { display: flex; justify-content: space-between; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
-.national-client-identity h3 { margin: 4px 0; }
-.national-client-identity p { margin: 0; color: #64748b; }
-.national-client-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-.national-client-stats article { background: #f4f7fb; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; }
-.national-client-stats small { display: block; color: #64748b; margin-bottom: 8px; }
-.national-client-stats strong { font-size: 1.15rem; }
-.national-client-schedule { border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 20px; }
-.national-client-notice { color: #64748b; font-size: .85rem; margin: 14px 0 0; }
-@media (max-width: 640px) { .national-client-stats { grid-template-columns: 1fr; } }
 
-.national-loan-decision { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; margin-top: 18px; padding: 16px; border: 1px solid #dce8f5; background: #f4f9ff; border-radius: 10px; }
-.national-loan-decision p { color: #4b6178; font-size: .85rem; margin: 5px 0 0; max-width: 600px; }
-.national-loan-decision button { white-space: nowrap; }
-.national-client-error p { margin: 0 0 8px; }
+/* CONSULTA NACIONAL - FINANCIERA */
+
+.national-client-lookup {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    color: #173153;
+    font-family: inherit;
+}
+
+.national-client-form {
+    display: grid;
+    gap: 9px;
+    margin: 0 0 18px;
+}
+
+.national-client-form label {
+    color: #344f72;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.national-client-form-row {
+    display: flex;
+    align-items: stretch;
+    gap: 11px;
+    width: 100%;
+}
+
+.national-client-form-row input {
+    box-sizing: border-box;
+    flex: 1;
+    min-width: 0;
+    height: 43px;
+    padding: 0 13px;
+    border: 1px solid #d4e1f1;
+    border-radius: 9px;
+    outline: none;
+    background: #fff;
+    color: #1c3b63;
+    font: inherit;
+    font-size: 13px;
+}
+
+.national-client-form-row input:focus {
+    border-color: #0868f7;
+    box-shadow: 0 0 0 3px rgba(8, 104, 247, 0.1);
+}
+
+.national-consult-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 43px;
+    padding: 0 19px;
+    border: 1px solid #0968f7;
+    border-radius: 9px;
+    background: #0968f7;
+    color: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.national-consult-button:hover:not(:disabled) {
+    background: #0059da;
+}
+
+.national-consult-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.national-secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 35px;
+    padding: 0 13px;
+    border: 1px solid #cddff4;
+    border-radius: 8px;
+    background: #fff;
+    color: #1964b4;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.national-client-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 13px;
+    border: 1px solid #f0cccc;
+    border-radius: 9px;
+    background: #fff3f3;
+    color: #b43d3d;
+    font-size: 12px;
+}
+
+.national-client-results {
+    display: grid;
+    gap: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #e8edf5;
+}
+
+/* IDENTIDAD */
+
+.national-client-identity {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+}
+
+.national-client-avatar {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 47px;
+    height: 47px;
+    border-radius: 12px;
+    background: #e9f2ff;
+    color: #126ad6;
+    font-size: 22px;
+}
+
+.national-client-person {
+    flex: 1;
+    min-width: 0;
+}
+
+.national-client-person h3 {
+    margin: 0 0 5px;
+    color: #142d51;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.national-client-person p {
+    margin: 0;
+    color: #8190a7;
+    font-size: 11px;
+}
+
+.national-client-count {
+    flex-shrink: 0;
+    padding: 8px 11px;
+    border-radius: 20px;
+    background: #e8f6ee;
+    color: #168255;
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+/* INDICADORES */
+
+.national-client-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.national-client-stats article {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid #e1e9f4;
+    border-radius: 10px;
+    background: #f8faff;
+}
+
+.national-client-stats small {
+    color: #7286a1;
+    font-size: 11px;
+}
+
+.national-client-stats strong {
+    color: #18375d;
+    font-size: clamp(14px, 1.6vw, 19px);
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.national-client-stats .national-positive {
+    color: #168557;
+}
+
+.national-client-stats .national-negative {
+    color: #b94141;
+}
+
+/* HISTORIAL */
+
+.national-client-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.national-client-section-head h4 {
+    margin: 0;
+    color: #193757;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.national-client-section-head > span,
+.national-client-section-head small {
+    color: #8191a8;
+    font-size: 11px;
+}
+
+.national-client-table-scroll {
+    width: 100%;
+    max-height: 340px;
+    overflow: auto;
+    border: 1px solid #e4ebf5;
+    border-radius: 9px;
+}
+
+.national-client-table {
+    width: 100%;
+    min-width: 750px;
+    border-collapse: collapse;
+}
+
+.national-client-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 13px 11px;
+    background: #f0f5fb;
+    color: #6c819e;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.national-client-table td {
+    padding: 13px 11px;
+    border-top: 1px solid #e9eef6;
+    color: #324c70;
+    font-size: 11px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.national-loan-code {
+    color: #1268ca !important;
+    font-weight: 800;
+}
+
+.national-document-extra {
+    display: block;
+    max-width: 230px;
+    margin-top: 5px;
+    color: #8394aa;
+    white-space: normal;
+}
+
+.national-loan-status {
+    display: inline-flex;
+    padding: 6px 9px;
+    border-radius: 18px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.national-loan-status.active {
+    background: #fff1dc;
+    color: #a16b19;
+}
+
+.national-loan-status.finished {
+    background: #eef1f5;
+    color: #667b95;
+}
+
+.national-table-button {
+    min-height: 32px;
+    padding: 0 11px;
+    border: 1px solid #bdd6f8;
+    border-radius: 7px;
+    background: #fff;
+    color: #1467cb;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.national-table-button:hover {
+    background: #edf5ff;
+}
+
+.national-client-empty {
+    display: grid;
+    gap: 7px;
+    justify-items: center;
+    padding: 26px 12px;
+    border: 1px dashed #d6e2f1;
+    border-radius: 10px;
+    background: #fbfcff;
+    text-align: center;
+}
+
+.national-client-empty strong {
+    color: #294868;
+    font-size: 12px;
+}
+
+.national-client-empty p {
+    margin: 0;
+    color: #8595aa;
+    font-size: 11px;
+}
+
+/* CRONOGRAMA */
+
+.national-client-schedule {
+    display: grid;
+    gap: 14px;
+    padding-top: 16px;
+    border-top: 1px solid #e7edf5;
+}
+
+.national-client-loading {
+    color: #7185a2;
+    font-size: 12px;
+}
+
+/* EVALUACIÓN */
+
+.national-loan-decision {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 15px;
+    border: 1px solid #d7e6f8;
+    border-radius: 11px;
+    background: #f4f9ff;
+}
+
+.national-loan-decision > div {
+    flex: 1 1 230px;
+    min-width: 0;
+}
+
+.national-loan-decision strong {
+    color: #1e486f;
+    font-size: 12px;
+}
+
+.national-loan-decision p {
+    margin: 5px 0 0;
+    color: #6f839e;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+@media (max-width: 680px) {
+    .national-client-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .national-client-identity {
+        flex-wrap: wrap;
+    }
+
+    .national-client-count {
+        margin-left: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    .national-client-form-row {
+        flex-direction: column;
+    }
+
+    .national-client-form-row input,
+    .national-consult-button {
+        width: 100%;
+    }
+
+    .national-client-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .national-client-count {
+        margin-left: 0;
+    }
+}

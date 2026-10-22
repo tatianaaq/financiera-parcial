@@ -1,4 +1,4 @@
-export type Me = { id: number; username: string; role: 'ADMIN' | 'ADVISOR'; agency: string; agencyId: number };
+export type Me = { id: number; username: string; role: 'ADMIN' | 'ADVISOR'; agency: string; agencyId: number; enabled?: boolean; agencyEnabled?: boolean; canRegisterClients?: boolean };
 export type Client = { id: number; dni: string; names: string; surnames: string; phone?: string; address?: string; department?: string; province?: string; district?: string; ubigeo?: string; addressReference?: string; registeredAt: string; active: boolean; agency?: string; agencyId?: number | null };
 export type Ubigeo = { ubigeo: string; department: string; province: string; district: string };
 export type Loan = { id: number; clientId: number; client: string; dni: string; agency: string; agencyId?: number; principal: number; outstandingPrincipal: number; totalOutstanding: number; annualRate?: number; installments: number; disbursedAt: string; status: string; documentType?: "DNI" | "RUC10" | "RUC20"; borrowerDocument?: string; responsibleDni?: string; companyName?: string; representativeName?: string };

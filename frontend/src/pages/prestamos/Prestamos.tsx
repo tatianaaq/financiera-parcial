@@ -1,183 +1,1719 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent
+} from 'react';
+
 import { api, money } from '../../api/api';
-import type { Agency, Client, ClientCreditSummary, Installment, Loan, Me } from '../../types/models';
+
+import type {
+  Agency,
+  Client,
+  Installment,
+  Loan,
+  Me
+} from '../../types/models';
+
 import { Modal } from '../../components/Modal';
 import { SkeletonRows } from '../../components/SkeletonRows';
-import './Prestamos.css';
-import { NationalClientSearch, type NationalClient } from '../clientes/NationalClientSearch';
+
+import {
+  NationalClientSearch,
+  type NationalClient
+} from '../clientes/NationalClientSearch';
+
 import type { LinkedDocument } from '../clientes/RucLookup';
 import { loanIdentity } from '../../utils/loanIdentity';
+import { CronogramaImprimible } from './CronogramaImprimible';
+import { ContratoPrestamo } from './ContratoPrestamo';
+import './Prestamos.css';
 
-type ProposedInstallment = { number: number; dueDate: string; principal: number; interest: number; total: number };
-type LoanEvaluation = { quoteDate: string; schedulePreview: ProposedInstallment[]; borrowerName: string; borrowerDocument: string; documentType: string; responsibleDni: string; client: string; dni: string; agency: string; principal: number; installments: number; monthlyPaymentEstimate: number; totalPaymentEstimate: number; availableOriginalCapital: number; annualRate: number };
-type LoanView = 'list' | 'detail' | 'schedule';
-// Fecha civil del negocio: no usar toISOString(), que usa UTC y puede adelantar el día en Perú.
+type ProposedInstallment = {
+  number: number;
+  dueDate: string;
+  principal: number;
+  interest: number;
+  total: number;
+};
+
+type LoanEvaluation = {
+  quoteDate: string;
+  schedulePreview: ProposedInstallment[];
+  borrowerName: string;
+  borrowerDocument: string;
+  documentType: string;
+  responsibleDni: string;
+  client: string;
+  dni: string;
+  agency: string;
+  principal: number;
+  installments: number;
+  monthlyPaymentEstimate: number;
+  totalPaymentEstimate: number;
+  availableOriginalCapital: number;
+  annualRate: number;
+};
+
+type EvaluationBody = {
+  clientId: number;
+  amount: string;
+  installments: string;
+  documentType: string;
+  documentNumber: string;
+};
+
+type DocumentFilter = 'all' | 'DNI' | 'RUC10' | 'RUC20';
+type LoanStatusFilter = 'all' | 'ACTIVO' | 'FINALIZADO';
+type View = 'list' | 'detail' | 'schedule';
+
+function loanCode(id: number): string {
+  return `PR-${String(id).padStart(6, '0')}`;
+}
+
+function formatDate(value: string): string {
+  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  return match
+      ? `${match[3]}/${match[2]}/${match[1]}`
+      : value || '—';
+}
+
+function formatRate(value?: number): string {
+  return value == null
+      ? 'No registrada'
+      : `${(value * 100).toLocaleString('es-PE', {
+        maximumFractionDigits: 2
+      })}%`;
+}
+
 function todayInLimaIso(): string {
   const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit',
+    timeZone: 'America/Lima',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
   }).formatToParts(new Date());
-  const value = (type: 'year' | 'month' | 'day') => parts.find(part => part.type === type)?.value ?? '';
-  return `${value('year')}-${value('month')}-${value('day')}`;
-}
-const formatRate = (rate?: number) => rate == null ? 'No registrado' : `${(rate * 100).toLocaleString('es-PE',{maximumFractionDigits:2})}%`;
-const validLoanSearch = (value: string) => /^[\p{L}\p{M} ]*$/u.test(value) || /^\d{0,11}$/.test(value) || /^(?:P(?:R(?:-\d{0,19})?)?)?$/i.test(value);
-const validClientSearch = (value: string) => /^[\p{L}\p{M} ]*$/u.test(value) || /^\d{0,8}$/.test(value);
 
-export function Prestamos({ me, notify, selectedClientId, clearSelectedClient, initialAgencyId, openClient, goToClients, initialDni, loanDocument }: { me: Me; notify: (message: string, error?: boolean) => void; selectedClientId?: number; clearSelectedClient: () => void; initialAgencyId?: string; openClient: (clientId: number) => void; goToClients: () => void; initialDni?: string; loanDocument?: LinkedDocument }) {
-  const [loans, setLoans] = useState<Loan[]>([]); const [clients, setClients] = useState<Client[]>([]); const [noActiveClients, setNoActiveClients] = useState<Client[]>([]); const [agencies, setAgencies] = useState<Agency[]>([]); const [creditSummary, setCreditSummary] = useState<ClientCreditSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [agencyId, setAgencyId] = useState(initialAgencyId ?? ''); const [query, setQuery] = useState(''); const [statusFilter, setStatusFilter] = useState('all'); const [situationFilter, setSituationFilter] = useState('all');
-  const [create, setCreate] = useState(false); const [prefilledClientId, setPrefilledClientId] = useState<number | undefined>(); const [evaluation, setEvaluation] = useState<{ body: { clientId: number; amount: string; installments: string; documentType: string; documentNumber: string }; result: LoanEvaluation }>();
-  const [confirmBusy, setConfirmBusy] = useState(false); const [clientAccepted, setClientAccepted] = useState(false); const [amountError, setAmountError] = useState(''); const [installmentsError, setInstallmentsError] = useState(''); const [amountInput, setAmountInput] = useState(''); const [installmentsInput, setInstallmentsInput] = useState('6'); const confirmationLock = useRef(false);
-  const [view, setView] = useState<LoanView>('list'); const [selectedLoan, setSelectedLoan] = useState<Loan>(); const [schedule, setSchedule] = useState<Installment[]>([]);
-  const load = useCallback(async () => { setIsLoading(true); try { const agencyQuery = me.role === 'ADMIN' && agencyId ? `?agencyId=${agencyId}` : ''; const [loanData, summary, clientsWithoutActiveLoans] = await Promise.all([api<Loan[]>(`/loans${agencyQuery}`), api<ClientCreditSummary[]>('/clients/credit-summary'), api<Client[]>(`/clients/without-active-loans${agencyQuery}`)]); setLoans(loanData); setCreditSummary(summary); setNoActiveClients(clientsWithoutActiveLoans); } catch (e) { notify((e as Error).message, true); } finally { setIsLoading(false); } }, [agencyId, me.role, notify]);
-  // oxlint-disable-next-line react/set-state-in-effect -- Refresh the agency-scoped portfolio from the API after mount and filter changes.
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => { if (me.role === 'ADMIN') api<Agency[]>('/admin/agencies').then(setAgencies).catch(e => notify(e.message, true)); }, [me.role, notify]);
-  useEffect(() => {
-    if (selectedClientId === undefined) return;
-    let active = true;
-    async function loadSelectedClient() {
-      const list = await api<Client[]>('/clients');
-      if (list.some(c => c.id === selectedClientId)) return list;
-      if (!initialDni || !/^\d{8}$/.test(initialDni)) throw new Error('No se recibió un DNI válido para recuperar al cliente nacional.');
-      const national = await api<NationalClient>(`/clients/national?dni=${encodeURIComponent(initialDni)}`);
-      if (national.id !== selectedClientId || !national.active) throw new Error('La selección no coincide con un cliente nacional activo.');
-      return [{ id: national.id, dni: national.dni, names: national.names, surnames: national.surnames, agency: national.agency,
-        agencyId: national.agencyId, registeredAt: '', active: national.active }, ...list];
+  const part = (type: string) =>
+      parts.find(value => value.type === type)?.value ?? '';
+
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+function getLoanType(
+    loan: Loan
+): 'DNI' | 'RUC10' | 'RUC20' {
+  const document = String(
+      loan.borrowerDocument || loan.dni || ''
+  ).trim();
+
+  const explicit = loan.documentType;
+
+  if (
+      explicit === 'DNI' ||
+      explicit === 'RUC10' ||
+      explicit === 'RUC20'
+  ) {
+    return explicit;
+  }
+
+  if (document.length === 8) return 'DNI';
+  if (document.startsWith('10')) return 'RUC10';
+  return 'RUC20';
+}
+
+function loanStatusText(status: string): string {
+  if (status === 'ACTIVO') return 'Activo';
+  if (status === 'FINALIZADO') return 'Finalizado';
+  return status;
+}
+
+function installmentStatusText(status: string): string {
+  if (status === 'PAGADA') return 'Pagada';
+  if (status === 'VENCIDA') return 'Vencida';
+  if (status === 'PENDIENTE') return 'Pendiente';
+  return status;
+}
+
+function ScheduleTable({
+                         rows
+                       }: {
+  rows: Installment[];
+}) {
+  return (
+      <div className="prestamos-table-scroll">
+        <table className="prestamos-table">
+          <thead>
+          <tr>
+            <th>N.°</th>
+            <th>Vencimiento</th>
+            <th>Cuota</th>
+            <th>Capital</th>
+            <th>Interés</th>
+            <th>Pagado</th>
+            <th>Saldo de cuota</th>
+            <th>Estado</th>
+          </tr>
+          </thead>
+
+          <tbody>
+          {rows.map(row => (
+              <tr key={row.id}>
+                <td>{row.number}</td>
+                <td>{formatDate(row.dueDate)}</td>
+                <td>
+                  {money(
+                      Number(row.principal) +
+                      Number(row.interest)
+                  )}
+                </td>
+                <td>{money(row.principal)}</td>
+                <td>{money(row.interest)}</td>
+                <td>{money(row.paid)}</td>
+                <td>{money(row.outstanding)}</td>
+                <td>
+                <span
+                    className={`prestamos-cuota-estado ${
+                        row.status === 'PAGADA'
+                            ? 'pagada'
+                            : row.status === 'VENCIDA'
+                                ? 'vencida'
+                                : 'pendiente'
+                    }`}
+                >
+                  {installmentStatusText(row.status)}
+                </span>
+                </td>
+              </tr>
+          ))}
+          </tbody>
+        </table>
+      </div>
+  );
+}
+
+export function Prestamos({
+                            me,
+                            notify,
+                            selectedClientId,
+                            clearSelectedClient,
+                            initialAgencyId,
+                            goToClients,
+                            initialDni,
+                            loanDocument
+                          }: {
+  me: Me;
+  notify: (message: string, error?: boolean) => void;
+  selectedClientId?: number;
+  clearSelectedClient: () => void;
+  initialAgencyId?: string;
+  openClient: (clientId: number) => void;
+  goToClients: () => void;
+  initialDni?: string;
+  loanDocument?: LinkedDocument;
+}) {
+  const isAdmin = me.role === 'ADMIN';
+  const isAdvisor = me.role === 'ADVISOR';
+
+  // Datos de la cartera
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loanLoading, setLoanLoading] = useState(false);
+
+  // Filtros
+  const [nameQuery, setNameQuery] = useState('');
+  const [documentQuery, setDocumentQuery] = useState('');
+
+  const [documentFilter, setDocumentFilter] =
+      useState<DocumentFilter>('all');
+
+  const [statusFilter, setStatusFilter] =
+      useState<LoanStatusFilter>('all');
+
+  const [agencyId, setAgencyId] =
+      useState(initialAgencyId ?? '');
+
+  // Consulta de clientes
+  const [showNationalSearch, setShowNationalSearch] =
+      useState(false);
+
+  // Otorgamiento
+  const [create, setCreate] = useState(false);
+
+  const [prefilledClientId, setPrefilledClientId] =
+      useState<number>();
+
+  const [amountInput, setAmountInput] = useState('');
+  const [installmentsInput, setInstallmentsInput] =
+      useState('6');
+
+  const [amountError, setAmountError] = useState('');
+  const [installmentsError, setInstallmentsError] =
+      useState('');
+
+  const [evaluation, setEvaluation] = useState<{
+    body: EvaluationBody;
+    result: LoanEvaluation;
+  }>();
+
+  const [clientAccepted, setClientAccepted] = useState(false);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const confirmationLock = useRef(false);
+
+  // Cronograma y contrato
+  const [view, setView] = useState<View>('list');
+  const [selectedLoan, setSelectedLoan] = useState<Loan>();
+  const [schedule, setSchedule] = useState<Installment[]>([]);
+  const [contractOpen, setContractOpen] = useState(false);
+
+  // Obtener préstamos desde el backend
+  const load = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const query =
+          isAdmin && agencyId
+              ? `?agencyId=${encodeURIComponent(agencyId)}`
+              : '';
+
+      const records = await api<Loan[]>(`/loans${query}`);
+      setLoans(records);
+    } catch (error) {
+      notify(
+          error instanceof Error
+              ? error.message
+              : 'No se pudieron cargar los préstamos.',
+          true
+      );
+    } finally {
+      setLoading(false);
     }
-    void loadSelectedClient().then(list => {
-      if (!active) return;
-      setClients(list); setPrefilledClientId(selectedClientId); setCreate(true);
-    }).catch(error => { if (active) notify((error as Error).message, true); });
-    return () => { active = false; };
-  }, [selectedClientId, initialDni, notify]);
-  const situationByClient = new Map(creditSummary.map(summary => [summary.clientId, summary.creditStatus]));
-  const noCreditsMode = situationFilter === 'SIN_CREDITOS';
-  const visible = loans.filter(l => {
-    const term = query.toLocaleLowerCase('es');
-    const loanCode = `PR-${String(l.id).padStart(6, '0')}`.toLocaleLowerCase('es');
-    return `${l.client} ${l.dni} ${l.borrowerDocument ?? ''}`.toLocaleLowerCase('es').includes(term) || loanCode.includes(term);
-  })
-    .filter(l => statusFilter === 'all' || l.status === statusFilter)
-    .filter(l => situationFilter === 'all' || noCreditsMode || situationByClient.get(l.clientId) === situationFilter);
-  const visibleNoActiveClients = noActiveClients.filter(client => `${client.dni} ${client.names} ${client.surnames}`.toLocaleLowerCase('es').includes(query.toLocaleLowerCase('es')));
-  async function newLoan(clientId?: number) { try { const list = await api<Client[]>('/clients'); if (!list.length) { notify('Primero agrega un cliente al directorio de tu sede.', true); return; } if (clientId !== undefined && !list.some(client => client.id === clientId)) { notify('El cliente ya no está disponible en tu sede.', true); return; } setClients(clientId === undefined ? list : [...list.filter(client => client.id === clientId), ...list.filter(client => client.id !== clientId)]); setPrefilledClientId(clientId); setCreate(true); } catch (e) { notify((e as Error).message, true); } }
-  function requestLoanFromNational(client: NationalClient) {
-    if (me.role !== 'ADVISOR' || !client.active || client.hasOverdueInstallments || client.availableOriginalCapital < 1) return;
-    // Se reutiliza el mismo cliente nacional; la agencia del credito sera la del asesor autenticado.
-    setClients([{ id: client.id, dni: client.dni, names: client.names, surnames: client.surnames,
-      agency: client.agency, agencyId: client.agencyId, registeredAt: '', active: client.active }]);
+  }, [isAdmin, agencyId, notify]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Agencias disponibles para el administrador
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    api<Agency[]>('/admin/agencies')
+        .then(setAgencies)
+        .catch(error =>
+            notify(
+                error instanceof Error
+                    ? error.message
+                    : 'No se pudieron cargar las agencias.',
+                true
+            )
+        );
+  }, [isAdmin, notify]);
+
+  // Cliente recibido desde el módulo Clientes
+  useEffect(() => {
+    if (selectedClientId === undefined || !isAdvisor) {
+      return;
+    }
+
+    let active = true;
+
+    async function loadSelectedClient() {
+      const records = await api<Client[]>('/clients');
+
+      if (
+          records.some(
+              client => client.id === selectedClientId
+          )
+      ) {
+        return records;
+      }
+
+      if (!initialDni || !/^\d{8}$/.test(initialDni)) {
+        throw new Error(
+            'No se recibió un DNI válido del cliente.'
+        );
+      }
+
+      const national = await api<NationalClient>(
+          `/clients/national?dni=${encodeURIComponent(initialDni)}`
+      );
+
+      if (
+          national.id !== selectedClientId ||
+          !national.active
+      ) {
+        throw new Error(
+            'El cliente no está disponible para solicitar un préstamo.'
+        );
+      }
+
+      return [
+        {
+          id: national.id,
+          dni: national.dni,
+          names: national.names,
+          surnames: national.surnames,
+          agency: national.agency,
+          agencyId: national.agencyId,
+          registeredAt: '',
+          active: national.active
+        },
+        ...records
+      ];
+    }
+
+    void loadSelectedClient()
+        .then(records => {
+          if (!active) return;
+
+          setClients(records);
+          setPrefilledClientId(selectedClientId);
+          setAmountInput('');
+          setInstallmentsInput('6');
+          setEvaluation(undefined);
+          setClientAccepted(false);
+          setCreate(true);
+        })
+        .catch(error => {
+          if (!active) return;
+
+          notify(
+              error instanceof Error
+                  ? error.message
+                  : 'No se pudo cargar el cliente.',
+              true
+          );
+        });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    selectedClientId,
+    initialDni,
+    isAdvisor,
+    notify
+  ]);
+
+  // FILTROS AUTOMÁTICOS
+  const visible = loans
+      .filter(loan => {
+        const identity = loanIdentity(loan);
+
+        const nameText = [
+          identity.name,
+          loan.client,
+          loan.companyName,
+          loan.representativeName
+        ]
+            .filter(Boolean)
+            .join(' ')
+            .toLocaleLowerCase('es');
+
+        const document = String(
+            identity.document ||
+            loan.borrowerDocument ||
+            loan.dni ||
+            ''
+        );
+
+        const normalizedName = nameQuery
+            .trim()
+            .toLocaleLowerCase('es');
+
+        const nameMatches =
+            nameText.includes(normalizedName);
+
+        const documentMatches =
+            document.includes(documentQuery.trim());
+
+        const typeMatches =
+            documentFilter === 'all' ||
+            getLoanType(loan) === documentFilter;
+
+        const statusMatches =
+            statusFilter === 'all' ||
+            loan.status === statusFilter;
+
+        return (
+            nameMatches &&
+            documentMatches &&
+            typeMatches &&
+            statusMatches
+        );
+      })
+      .sort((a, b) => b.id - a.id);
+
+  function clearFilters() {
+    setNameQuery('');
+    setDocumentQuery('');
+    setDocumentFilter('all');
+    setStatusFilter('all');
+    setAgencyId('');
+  }
+
+  // Abrir evaluación de préstamo
+  async function newLoan(clientId?: number) {
+    if (!isAdvisor) return;
+
+    try {
+      const records = await api<Client[]>('/clients');
+
+      if (!records.length) {
+        notify(
+            'Primero registra un cliente en el módulo Clientes.',
+            true
+        );
+        return;
+      }
+
+      if (
+          clientId !== undefined &&
+          !records.some(client => client.id === clientId)
+      ) {
+        notify(
+            'El cliente no está disponible en esta sede.',
+            true
+        );
+        return;
+      }
+
+      const ordered = clientId === undefined
+          ? records
+          : [
+            ...records.filter(
+                client => client.id === clientId
+            ),
+            ...records.filter(
+                client => client.id !== clientId
+            )
+          ];
+
+      setClients(ordered);
+      setPrefilledClientId(clientId);
+      setAmountInput('');
+      setInstallmentsInput('6');
+      setAmountError('');
+      setInstallmentsError('');
+      setEvaluation(undefined);
+      setClientAccepted(false);
+      setCreate(true);
+    } catch (error) {
+      notify(
+          error instanceof Error
+              ? error.message
+              : 'No se pudo abrir el formulario.',
+          true
+      );
+    }
+  }
+
+  // Evaluación desde consulta nacional
+  function requestLoanFromNational(
+      client: NationalClient
+  ) {
+    if (
+        !isAdvisor ||
+        !client.active ||
+        client.hasOverdueInstallments ||
+        client.availableOriginalCapital < 1
+    ) {
+      return;
+    }
+
+    setClients([
+      {
+        id: client.id,
+        dni: client.dni,
+        names: client.names,
+        surnames: client.surnames,
+        agency: client.agency,
+        agencyId: client.agencyId,
+        registeredAt: '',
+        active: client.active
+      }
+    ]);
+
     setPrefilledClientId(client.id);
     setAmountInput('');
     setInstallmentsInput('6');
+    setAmountError('');
+    setInstallmentsError('');
     setEvaluation(undefined);
     setClientAccepted(false);
+    setShowNationalSearch(false);
     setCreate(true);
   }
-  async function evaluate(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault(); const form = new FormData(e.currentTarget); const clientId = loanDocument ? loanDocument.clientId : Number(form.get('clientId'));
-    if (!/^\d+$/.test(amountInput) || Number(amountInput) < 1 || Number(amountInput) > 10000) { setAmountError('El monto debe ser un número entero entre S/ 1 y S/ 10,000.'); return; }
-    if (!/^\d+$/.test(installmentsInput) || Number(installmentsInput) < 1 || Number(installmentsInput) > 36) { setInstallmentsError('El número de cuotas debe ser un entero entre 1 y 36.'); return; }
-    setAmountError(''); setInstallmentsError(''); const body = { clientId, amount: amountInput, installments: installmentsInput, documentType: loanDocument?.documentType ?? 'DNI', documentNumber: loanDocument?.documentNumber ?? (clients.find(c=>c.id===clientId)?.dni || initialDni || '') };
-    try { const result = await api<LoanEvaluation>('/loans/evaluation', { method: 'POST', body: JSON.stringify(body) }); setClientAccepted(false); setEvaluation({ body, result }); } catch (err) { notify((err as Error).message, true); }
+
+  // Enviar evaluación al backend
+  async function evaluate(
+      event: FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    const form = new FormData(event.currentTarget);
+
+    const clientId = loanDocument
+        ? loanDocument.clientId
+        : Number(form.get('clientId'));
+
+    if (
+        !/^\d+$/.test(amountInput) ||
+        Number(amountInput) < 1 ||
+        Number(amountInput) > 10000
+    ) {
+      setAmountError(
+          'El monto debe ser un entero entre S/ 1 y S/ 10,000.'
+      );
+      return;
+    }
+
+    if (
+        !/^\d+$/.test(installmentsInput) ||
+        Number(installmentsInput) < 1 ||
+        Number(installmentsInput) > 36
+    ) {
+      setInstallmentsError(
+          'El número de cuotas debe estar entre 1 y 36.'
+      );
+      return;
+    }
+
+    setAmountError('');
+    setInstallmentsError('');
+
+    const body: EvaluationBody = {
+      clientId,
+      amount: amountInput,
+      installments: installmentsInput,
+      documentType:
+          loanDocument?.documentType ?? 'DNI',
+      documentNumber:
+          loanDocument?.documentNumber ??
+          clients.find(
+              client => client.id === clientId
+          )?.dni ??
+          initialDni ??
+          ''
+    };
+
+    try {
+      const result = await api<LoanEvaluation>(
+          '/loans/evaluation',
+          {
+            method: 'POST',
+            body: JSON.stringify(body)
+          }
+      );
+
+      setEvaluation({ body, result });
+      setClientAccepted(false);
+    } catch (error) {
+      notify(
+          error instanceof Error
+              ? error.message
+              : 'No se pudo evaluar el préstamo.',
+          true
+      );
+    }
   }
+
+  // Registrar préstamo aceptado
   async function confirmLoan() {
-    if (!evaluation || !clientAccepted || confirmationLock.current) return;
-    confirmationLock.current = true; setConfirmBusy(true);
+    if (
+        !evaluation ||
+        !clientAccepted ||
+        confirmationLock.current
+    ) {
+      return;
+    }
+
+    confirmationLock.current = true;
+    setConfirmBusy(true);
+
     try {
       const created = await api<Loan>('/loans', {
         method: 'POST',
-        body: JSON.stringify({ ...evaluation.body, quoteDate: evaluation.result.quoteDate, customerAccepted: true }),
+        body: JSON.stringify({
+          ...evaluation.body,
+          quoteDate: evaluation.result.quoteDate,
+          customerAccepted: true
+        })
       });
-      setCreate(false); setEvaluation(undefined); setClientAccepted(false);
-      setPrefilledClientId(undefined); clearSelectedClient();
+
+      setCreate(false);
+      setEvaluation(undefined);
+      setClientAccepted(false);
+      setPrefilledClientId(undefined);
+      clearSelectedClient();
+
       await load();
+
       await openLoan(created, 'schedule');
-      notify(`Préstamo PR-${String(created.id).padStart(6, '0')} registrado con aceptación comunicada por el asesor. Revisa su cronograma definitivo.`);
-    } catch (err) { notify((err as Error).message, true); }
-    finally { confirmationLock.current = false; setConfirmBusy(false); }
+
+      notify(
+          `Préstamo ${loanCode(created.id)} registrado correctamente.`
+      );
+    } catch (error) {
+      notify(
+          error instanceof Error
+              ? error.message
+              : 'No se pudo registrar el préstamo.',
+          true
+      );
+    } finally {
+      confirmationLock.current = false;
+      setConfirmBusy(false);
+    }
   }
+
+  function closeLoanForm() {
+    if (confirmBusy) return;
+
+    setCreate(false);
+    setEvaluation(undefined);
+    setClientAccepted(false);
+    setPrefilledClientId(undefined);
+    setAmountInput('');
+    setInstallmentsInput('6');
+    setAmountError('');
+    setInstallmentsError('');
+    clearSelectedClient();
+  }
+
   function rejectProposal() {
     if (confirmBusy) return;
-    setCreate(false); setEvaluation(undefined); setClientAccepted(false);
-    setPrefilledClientId(undefined); clearSelectedClient();
-    notify('El cliente no aceptó la propuesta. No se registró ningún préstamo.');
+
+    closeLoanForm();
+
+    notify(
+        'El cliente no aceptó la propuesta. No se registró el préstamo.'
+    );
   }
-  async function openLoan(loan: Loan, next: 'detail' | 'schedule') { try { const rows = await api<Installment[]>(`/loans/${loan.id}/schedule`); setSelectedLoan(loan); setSchedule(rows); setView(next); } catch (e) { notify((e as Error).message, true); } }
-  const openInstallments = schedule.filter(row => row.outstanding > 0);
-  const todayIso = todayInLimaIso();
-  const overdueRows = schedule.filter(row => row.outstanding > 0 && row.dueDate < todayIso);
-  const paidRows = schedule.filter(row => row.outstanding <= 0);
+
+  // Cargar cronograma real
+  async function openLoan(
+      loan: Loan,
+      next: 'detail' | 'schedule'
+  ) {
+    if (loanLoading) return;
+
+    setLoanLoading(true);
+
+    try {
+      const rows = await api<Installment[]>(
+          `/loans/${loan.id}/schedule`
+      );
+
+      setContractOpen(false);
+      setSelectedLoan(loan);
+      setSchedule(rows);
+      setView(next);
+    } catch (error) {
+      notify(
+          error instanceof Error
+              ? error.message
+              : 'No se pudo cargar el cronograma.',
+          true
+      );
+    } finally {
+      setLoanLoading(false);
+    }
+  }
+
+  function backToLoans() {
+    setView('list');
+    setSelectedLoan(undefined);
+    setSchedule([]);
+    setContractOpen(false);
+  }
+
+  // PANTALLA DE CRONOGRAMA
   if (view !== 'list' && selectedLoan) {
     const identity = loanIdentity(selectedLoan);
-    return <div className="loan-workspace">
-    <section className="panel workspace-heading"><div><span className="eyebrow">PRÉSTAMOS / {view === 'detail' ? 'DETALLE' : 'CRONOGRAMA'}</span><h3>{view === 'detail' ? 'Detalle del préstamo' : 'Cronograma de cuotas'}</h3><p>PR-{String(selectedLoan.id).padStart(6,'0')} · {identity.name} · {identity.document}{identity.isRuc && <> · DNI responsable: {identity.responsibleDni}</>}</p></div><div className="actions"><button className="secondary" onClick={() => { setView('list'); setSelectedLoan(undefined); }}>← Volver a préstamos</button>{view === 'detail' && <button className="primary" onClick={() => setView('schedule')}>Ver cronograma →</button>}</div></section>
-    <section className="loan-identity panel"><div className="loan-identity-title"><div className="loan-icon">▤</div><div><small>N.° de préstamo</small><b>PR-{String(selectedLoan.id).padStart(6,'0')}</b></div><span className={`tag ${selectedLoan.status === 'FINALIZADO' ? '' : 'warn'}`}>{selectedLoan.status}</span></div><div className="loan-identity-facts"><div><small>{identity.isRuc20 ? 'Empresa prestataria' : 'Prestatario'}</small><b>{identity.name}</b></div><div><small>Documento utilizado</small><b>{identity.document}</b></div>{identity.isRuc && <div><small>DNI responsable</small><b>{identity.responsibleDni}</b></div>}<div><small>Agencia</small><b>{selectedLoan.agency}</b></div><div><small>Desembolso</small><b>{selectedLoan.disbursedAt}</b></div></div></section>
-    <section className="cards loan-summary-cards"><article className="card"><small>Capital original</small><b>{money(selectedLoan.principal)}</b></article><article className="card"><small>Capital pendiente</small><b>{money(selectedLoan.outstandingPrincipal)}</b></article><article className="card"><small>Cuotas pagadas</small><b>{paidRows.length}</b></article><article className="card"><small>Cuotas pendientes</small><b>{openInstallments.length}</b></article><article className="card"><small>Cuotas vencidas</small><b className={overdueRows.length ? 'overdue-text' : ''}>{overdueRows.length}</b></article></section>
-    {view === 'detail' ? <><section className="loan-facts-grid"><article className="panel"><div className="panel-head"><h3>Información del prestatario</h3></div><dl><div><dt>{identity.isRuc20 ? 'Empresa' : 'Prestatario'}</dt><dd>{identity.name}</dd></div><div><dt>Documento del préstamo</dt><dd>{identity.document}</dd></div>{identity.isRuc && <div><dt>DNI responsable</dt><dd>{identity.responsibleDni}</dd></div>}{identity.representative && <div><dt>Representante</dt><dd>{identity.representative}</dd></div>}<div><dt>Agencia de atención</dt><dd>{selectedLoan.agency}</dd></div></dl></article><article className="panel"><div className="panel-head"><h3>Condiciones del préstamo</h3></div><dl><div><dt>Capital original</dt><dd>{money(selectedLoan.principal)}</dd></div><div><dt>TEA</dt><dd>{formatRate(selectedLoan.annualRate)}</dd></div><div><dt>Periodo de cuota</dt><dd>30 días</dd></div><div><dt>Número de cuotas</dt><dd>{selectedLoan.installments}</dd></div><div><dt>Estado</dt><dd>{selectedLoan.status}</dd></div></dl></article><article className="panel"><div className="panel-head"><h3>Resumen de seguimiento</h3></div><dl><div><dt>Capital pendiente</dt><dd>{money(selectedLoan.outstandingPrincipal)}</dd></div><div><dt>Saldo de cuotas</dt><dd>{money(schedule.reduce((total, row) => total + row.outstanding, 0))}</dd></div><div><dt>Cuotas pagadas</dt><dd>{paidRows.length}</dd></div><div><dt>Cuotas pendientes</dt><dd>{openInstallments.length}</dd></div><div><dt>Cuotas vencidas</dt><dd>{overdueRows.length}</dd></div></dl></article></section><section className="panel schedule-preview"><div className="panel-head"><div><span className="eyebrow">VISTA PREVIA</span><h3>Primeras cuotas</h3></div><button className="link" onClick={() => setView('schedule')}>Ver cronograma completo →</button></div><ScheduleTable rows={schedule.slice(0,5)} /></section></> : <section className="panel"><div className="panel-head"><div><span className="eyebrow">PLAN DE PAGOS</span><h3>Detalle del cronograma · TEA {formatRate(selectedLoan.annualRate)}</h3></div><span className="tag">{schedule.length} cuotas</span></div><ScheduleTable rows={schedule} /></section>}
-  </div>;
-  }
-  return <div className="page-loans">
-    <NationalClientSearch initialDni={initialDni} canGrantLoans={me.role === 'ADVISOR'} onRequestLoan={requestLoanFromNational} onRegisterNew={goToClients} />
-    <section className="panel loan-filters"><div className="panel-head"><div><span className="eyebrow">{me.role === 'ADMIN' ? 'CARTERA NACIONAL' : `CARTERA · ${me.agency.toUpperCase()}`}</span><h3>{noCreditsMode ? 'Clientes sin créditos activos' : me.role === 'ADMIN' ? 'Préstamos de todas las agencias' : 'Préstamos de la agencia'}</h3><p className="muted">{noCreditsMode ? 'Clientes de la sede seleccionada que no tienen préstamos en estado ACTIVO.' : me.role === 'ADMIN' ? 'Seguimiento consolidado de operaciones por sede.' : 'Consulta la cartera y el cronograma de cada préstamo.'}</p></div>{me.role === 'ADVISOR' && <button className="primary" onClick={() => void newLoan()}>+ Otorgar préstamo</button>}</div><div className="loan-filter-row"><label className="filter-search"><span>{noCreditsMode ? 'Buscar cliente por DNI o nombre' : 'Buscar por cliente, DNI o préstamo'}</span><input className="search" placeholder={noCreditsMode ? 'DNI o nombre del cliente' : 'Nombre, DNI o PR-000035'} value={query} onChange={e => { if (noCreditsMode ? validClientSearch(e.target.value) : validLoanSearch(e.target.value)) setQuery(e.target.value); }} onPaste={e => { if (!(noCreditsMode ? validClientSearch(e.clipboardData.getData('text')) : validLoanSearch(e.clipboardData.getData('text')))) e.preventDefault(); }} aria-label={noCreditsMode ? 'Buscar clientes por DNI o nombre' : 'Buscar por nombre, DNI o código de préstamo'} /></label>{me.role === 'ADMIN' && <label><span>Agencia</span><select className="search" aria-label="Filtrar por agencia" value={agencyId} onChange={e => setAgencyId(e.target.value)}><option value="">Todas las agencias</option>{agencies.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>}{!noCreditsMode && <label><span>Estado del préstamo</span><select className="search" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">Todos</option><option value="ACTIVO">Activos</option><option value="FINALIZADO">Finalizados</option></select></label>}<label><span>Situación crediticia</span><select className="search" value={situationFilter} onChange={e => setSituationFilter(e.target.value)}><option value="all">Todas</option><option value="AL_DIA">Al día</option><option value="MOROSO">Moroso</option><option value="SIN_CREDITOS">Sin créditos activos</option></select></label></div></section>
-    {isLoading && <div className="loading-caption" role="status"><span className="loading-spinner" aria-hidden="true" />Cargando cartera…</div>}
-    {noCreditsMode ? <section className="panel"><div className="panel-head"><div><span className="eyebrow">DIRECTORIO</span><h3>Clientes sin créditos activos</h3></div><span className="tag">{isLoading ? 'Cargando…' : `${visibleNoActiveClients.length} clientes`}</span></div><div className="table-scroll"><table><thead><tr><th>DNI</th><th>Cliente</th><th>Agencia</th><th>Celular</th><th>Créditos activos</th><th>Acción</th></tr></thead><tbody>{isLoading ? <SkeletonRows columns={6} rows={4} /> : visibleNoActiveClients.length ? visibleNoActiveClients.map(client => <tr key={client.id}><td>{client.dni}</td><td><b>{client.names} {client.surnames}</b></td><td>{client.agency || '—'}</td><td>{client.phone || '—'}</td><td>0</td><td className="actions-cell"><button className="secondary compact" onClick={() => openClient(client.id)}>Ver cliente</button>{me.role === 'ADVISOR' && client.active && <button className="primary compact" onClick={() => void newLoan(client.id)}>Evaluar préstamo</button>}</td></tr>) : <tr><td colSpan={6} className="empty">No hay clientes sin créditos activos que coincidan con estos filtros.</td></tr>}</tbody></table></div></section> : <section className="panel"><div className="panel-head"><div><span className="eyebrow">CARTERA</span><h3>Listado de préstamos</h3></div><span className="tag">{isLoading ? 'Cargando…' : `${visible.length} préstamos`}</span></div><div className="table-scroll"><table><thead><tr><th>N.° préstamo</th><th>Cliente</th><th>Documento</th><th>Sede</th><th>Capital original</th><th>Capital pendiente</th><th>Cuotas</th><th>Estado</th><th>Situación</th><th>Acciones</th></tr></thead><tbody>{isLoading ? <SkeletonRows columns={10} rows={4} /> : visible.length ? visible.map(l => { const situation = situationByClient.get(l.clientId) ?? 'SIN_CREDITOS'; return <tr key={l.id}><td>PR-{String(l.id).padStart(6,'0')}</td><td><b>{loanIdentity(l).name}</b></td><td><span className="loan-document-main">{loanIdentity(l).document}</span>{loanIdentity(l).isRuc && <small className="loan-document-secondary">DNI responsable: {loanIdentity(l).responsibleDni}</small>}</td><td>{l.agency}</td><td>{money(l.principal)}</td><td>{money(l.outstandingPrincipal)}</td><td>{l.installments}</td><td><span className={`tag ${l.status === 'FINALIZADO' ? '' : 'warn'}`}>{l.status}</span></td><td><span className={`tag ${situation === 'MOROSO' ? 'red' : situation === 'SIN_CREDITOS' ? 'neutral' : ''}`}>{situation === 'MOROSO' ? 'Moroso' : situation === 'AL_DIA' ? 'Al día' : 'Sin créditos activos'}</span></td><td className="actions-cell"><button className="secondary compact" onClick={() => void openLoan(l,'detail')}>Ver detalle</button><button className="link" onClick={() => void openLoan(l,'schedule')}>Cronograma</button></td></tr>; }) : <tr><td colSpan={10} className="empty">No hay préstamos que coincidan con estos filtros.</td></tr>}</tbody></table></div></section>}
-    {create && <Modal title={evaluation ? 'Propuesta de préstamo' : 'Evaluar préstamo'} modalClassName={evaluation ? 'loan-offer-modal' : undefined} close={() => { setCreate(false); setPrefilledClientId(undefined); setEvaluation(undefined); setClientAccepted(false); setAmountError(''); setInstallmentsError(''); setAmountInput(''); setInstallmentsInput('6'); clearSelectedClient(); }}>{evaluation ? <div className="loan-offer-layout">
-      <div className="loan-offer-scroll">
-        <div className="loan-offer-intro">
-          <span className="confirmation-step">PASO 2 DE 2 · PROPUESTA PARA EL CLIENTE</span>
-          <p>Revisa las condiciones y explica las cuotas antes de registrar el préstamo.</p>
-        </div>
-        <section className="loan-offer-borrower" aria-label="Datos del prestatario">
-          <span>PRESTATARIO</span>
-          <strong>{evaluation.result.borrowerName}</strong>
-          <div className="loan-offer-borrower-facts">
-            <span>{evaluation.result.documentType} {evaluation.result.borrowerDocument}</span>
-            <span>DNI responsable: {evaluation.result.responsibleDni}</span>
-          </div>
-        </section>
-        <div className="loan-offer-highlights" aria-label="Resumen de condiciones">
-          <div><small>Capital solicitado</small><strong>{money(evaluation.result.principal)}</strong></div>
-          <div><small>Primera cuota</small><strong>{money(evaluation.result.monthlyPaymentEstimate)}</strong></div>
-          <div className="loan-offer-total"><small>Total a pagar</small><strong>{money(evaluation.result.totalPaymentEstimate)}</strong></div>
-        </div>
-        <div className="loan-offer-meta">
-          <span>{evaluation.result.installments} cuotas de 30 días</span>
-          <span>TEA {formatRate(evaluation.result.annualRate)}</span>
-          <span>Sede: {evaluation.result.agency}</span>
-        </div>
-        <section className="loan-offer-schedule" aria-label="Cronograma propuesto">
-          <div className="loan-proposal-heading">
-            <b>Cronograma de cuotas</b>
-            <small>Origen: {evaluation.result.quoteDate} · El día de origen cuenta como día 1</small>
-          </div>
-          <table className="loan-proposal-table"><thead><tr><th>Cuota</th><th>Vencimiento</th><th>Capital</th><th>Interés</th><th>Total</th></tr></thead>
-            <tbody>{evaluation.result.schedulePreview.map(row => <tr key={row.number}><td>{row.number}</td><td>{row.dueDate}</td><td>{money(row.principal)}</td><td>{money(row.interest)}</td><td><b>{money(row.total)}</b></td></tr>)}</tbody>
-          </table>
-          <div className="loan-proposal-mobile-cards">
-            {evaluation.result.schedulePreview.map(row => <article key={row.number} className="loan-proposal-installment">
-              <div className="loan-proposal-installment-title"><strong>Cuota {row.number}</strong><span>Vence {row.dueDate}</span></div>
-              <div className="loan-proposal-installment-values"><span>Capital <b>{money(row.principal)}</b></span><span>Interés <b>{money(row.interest)}</b></span><span className="loan-proposal-installment-total">Total <b>{money(row.total)}</b></span></div>
-            </article>)}
-          </div>
-        </section>
-        <p className="loan-offer-note">Esta es una propuesta, no un préstamo registrado. Si cambian las condiciones o la fecha, tendrás que volver a evaluar.</p>
-      </div>
-      <div className="loan-offer-footer">
-        <label className="loan-client-acceptance"><input type="checkbox" checked={clientAccepted} disabled={confirmBusy} onChange={event => setClientAccepted(event.target.checked)} />
-          <span>Confirmo como asesor que mostré al cliente las cuotas y el total, y que <b>aceptó expresamente</b> la propuesta. No equivale a una firma de contrato.</span>
-        </label>
-        <div className="loan-proposal-actions">
-          <button className="secondary" type="button" disabled={confirmBusy} onClick={() => { setEvaluation(undefined); setClientAccepted(false); }}>Modificar</button>
-          <button className="secondary loan-decline" type="button" disabled={confirmBusy} onClick={rejectProposal}>No acepta</button>
-          <button className="primary" type="button" onClick={() => void confirmLoan()} disabled={confirmBusy || !clientAccepted}>
-            {confirmBusy ? 'Registrando…' : 'Aceptar y otorgar'}
-          </button>
-        </div>
-      </div>
-    </div> : <form className="form-grid" onSubmit={evaluate}><div className="confirmation-step span">PASO 1 DE 2 · EVALUACIÓN</div>{loanDocument && <div className="document-result span" role="status"><span className="tag">Documento verificado</span><h4>{loanDocument.borrowerName}</h4><p>{loanDocument.documentType} {loanDocument.documentNumber} · DNI responsable {loanDocument.responsibleDni}</p>{loanDocument.representativeName && <p>Representante: {loanDocument.representativeName}</p>}</div>}<label className="span">{loanDocument ? 'DNI responsable' : 'Cliente'}<select name="clientId" disabled={Boolean(loanDocument)} defaultValue={prefilledClientId ?? selectedClientId ?? clients[0]?.id ?? ''} required>{clients.map(c => <option key={c.id} value={c.id}>{c.dni} · {c.names} {c.surnames}</option>)}</select></label><label>Monto (S/)<input name="amount" type="text" inputMode="numeric" autoComplete="off" pattern="[0-9]+" required value={amountInput} aria-invalid={Boolean(amountError)} aria-describedby={amountError ? 'loan-amount-error' : undefined} onChange={event => { const value = event.target.value; if (/^\d*$/.test(value)) { setAmountInput(value); setAmountError(value && (Number(value) < 1 || Number(value) > 10000) ? 'El monto debe ser un número entero entre S/ 1 y S/ 10,000.' : ''); } }} onPaste={event => { if (!/^\d+$/.test(event.clipboardData.getData('text'))) event.preventDefault(); }} />{amountError && <small id="loan-amount-error" className="loan-amount-error" role="alert">{amountError}</small>}</label><label>Número de cuotas<input name="installments" type="text" inputMode="numeric" autoComplete="off" pattern="[0-9]+" required value={installmentsInput} aria-invalid={Boolean(installmentsError)} aria-describedby={installmentsError ? 'loan-installments-error' : undefined} onChange={event => { const value = event.target.value; if (/^\d*$/.test(value)) { setInstallmentsInput(value); setInstallmentsError(value && (Number(value) < 1 || Number(value) > 36) ? 'El número de cuotas debe ser un entero entre 1 y 36.' : ''); } }} onPaste={event => { if (!/^\d+$/.test(event.clipboardData.getData('text'))) event.preventDefault(); }} />{installmentsError && <small id="loan-installments-error" className="loan-amount-error" role="alert">{installmentsError}</small>}</label><div className="form-actions span"><button className="secondary" type="button" onClick={() => { setCreate(false); setAmountError(''); setInstallmentsError(''); setAmountInput(''); setInstallmentsInput('6'); clearSelectedClient(); }}>Cancelar</button><button className="primary">Evaluar solicitud</button></div></form>}</Modal>}
-  </div>;
-}
 
-function ScheduleTable({ rows }: { rows: Installment[] }) { return <div className="table-scroll"><table><thead><tr><th>N.°</th><th>Vencimiento</th><th>Capital</th><th>Interés</th><th>Total pagado</th><th>Saldo de cuota</th><th>Estado</th></tr></thead><tbody>{rows.map(i => <tr key={i.id}><td>{i.number}</td><td>{i.dueDate}</td><td>{money(i.principal)}</td><td>{money(i.interest)}</td><td>{money(i.paid)}</td><td>{money(i.outstanding)}</td><td><span className={`tag ${i.status === 'PAGADA' ? '' : i.status === 'VENCIDA' ? 'red' : 'warn'}`}>{i.status}</span></td></tr>)}</tbody></table></div>; }
+    const paidRows = schedule.filter(
+        row => Number(row.outstanding) <= 0
+    );
+
+    const pendingRows = schedule.filter(
+        row => Number(row.outstanding) > 0
+    );
+
+    const overdueRows = pendingRows.filter(
+        row => row.dueDate < todayInLimaIso()
+    );
+
+    const totalScheduled = schedule.reduce(
+        (sum, row) =>
+            sum +
+            Number(row.principal) +
+            Number(row.interest),
+        0
+    );
+
+    return (
+        <div className="loan-workspace prestamos-nuevo">
+          <section className="panel prestamos-crono-header">
+            <div className="prestamos-crono-persona">
+            <span className="prestamos-label">
+              {view === 'schedule'
+                  ? 'CRONOGRAMA DE PAGOS'
+                  : 'DETALLE DEL PRÉSTAMO'}
+            </span>
+
+              <h3>
+                Préstamo N.°{' '}
+                {String(selectedLoan.id).padStart(6, '0')}
+              </h3>
+
+              <p>{identity.name}</p>
+
+              <p>
+                {identity.document}
+
+                {identity.isRuc && (
+                    <>
+                      {' · '}DNI responsable:{' '}
+                      {identity.responsibleDni}
+                    </>
+                )}
+              </p>
+            </div>
+
+            <div className="prestamos-crono-resumen-datos">
+              <div>
+                <small>Capital</small>
+                <strong>
+                  {money(selectedLoan.principal)}
+                </strong>
+              </div>
+
+              <div>
+                <small>Cuotas</small>
+                <strong>{selectedLoan.installments}</strong>
+              </div>
+
+              <div>
+                <small>Estado</small>
+
+                <span
+                    className={`prestamos-estado ${
+                        selectedLoan.status === 'ACTIVO'
+                            ? 'activo'
+                            : 'finalizado'
+                    }`}
+                >
+                {loanStatusText(selectedLoan.status)}
+              </span>
+              </div>
+            </div>
+
+            <div className="prestamos-crono-botones">
+              <button
+                  type="button"
+                  className="prestamos-btn-outline"
+                  onClick={backToLoans}
+              >
+                ← Volver
+              </button>
+
+              {view === 'detail' && (
+                  <button
+                      type="button"
+                      className="prestamos-btn-outline"
+                      onClick={() => setView('schedule')}
+                  >
+                    Ver cronograma
+                  </button>
+              )}
+
+              <button
+                  type="button"
+                  className="prestamos-btn-primary"
+                  disabled={!schedule.length}
+                  onClick={() => window.print()}
+              >
+                Imprimir cronograma
+              </button>
+
+              <button
+                  type="button"
+                  className="prestamos-btn-outline"
+                  disabled={!schedule.length}
+                  onClick={() => setContractOpen(true)}
+              >
+                Ver contrato / PDF
+              </button>
+            </div>
+          </section>
+
+          <section className="panel prestamos-crono-indicadores">
+            <article>
+              <span className="prestamos-kpi-icon verde">✓</span>
+              <div>
+                <small>Pagadas</small>
+                <strong>
+                  {paidRows.length} de {schedule.length}
+                </strong>
+              </div>
+            </article>
+
+            <article>
+              <span className="prestamos-kpi-icon naranja">◷</span>
+              <div>
+                <small>Pendientes</small>
+                <strong>
+                  {pendingRows.length} de {schedule.length}
+                </strong>
+              </div>
+            </article>
+
+            <article>
+              <span className="prestamos-kpi-icon azul">▥</span>
+              <div>
+                <small>Capital pendiente</small>
+                <strong>
+                  {money(selectedLoan.outstandingPrincipal)}
+                </strong>
+              </div>
+            </article>
+          </section>
+
+          {view === 'detail' && (
+              <section className="panel prestamos-detalle">
+                <h3>Información registrada</h3>
+
+                <div className="prestamos-detalle-grid">
+                  <div>
+                    <small>Prestatario</small>
+                    <strong>{identity.name}</strong>
+                  </div>
+
+                  <div>
+                    <small>Documento</small>
+                    <strong>{identity.document}</strong>
+                  </div>
+
+                  {identity.isRuc && (
+                      <div>
+                        <small>DNI responsable</small>
+                        <strong>{identity.responsibleDni}</strong>
+                      </div>
+                  )}
+
+                  {identity.representative && (
+                      <div>
+                        <small>Representante</small>
+                        <strong>{identity.representative}</strong>
+                      </div>
+                  )}
+
+                  <div>
+                    <small>Agencia</small>
+                    <strong>{selectedLoan.agency}</strong>
+                  </div>
+
+                  <div>
+                    <small>Desembolso</small>
+                    <strong>
+                      {formatDate(selectedLoan.disbursedAt)}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <small>TEA</small>
+                    <strong>
+                      {formatRate(selectedLoan.annualRate)}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <small>Cuotas vencidas</small>
+                    <strong>{overdueRows.length}</strong>
+                  </div>
+                </div>
+              </section>
+          )}
+
+          <section className="panel prestamos-crono-tabla">
+            <div className="prestamos-tabla-encabezado">
+              <h3>
+                {view === 'schedule'
+                    ? 'Detalle de cuotas'
+                    : 'Primeras cuotas'}
+              </h3>
+
+              <span>
+              TEA {formatRate(selectedLoan.annualRate)}
+            </span>
+            </div>
+
+            <ScheduleTable
+                rows={
+                  view === 'schedule'
+                      ? schedule
+                      : schedule.slice(0, 5)
+                }
+            />
+
+            <div className="prestamos-crono-pie">
+            <span>
+              Mostrando{' '}
+              {view === 'schedule'
+                  ? schedule.length
+                  : Math.min(schedule.length, 5)}
+              {' '}de {schedule.length} cuotas
+            </span>
+
+              <span>
+              Total programado:{' '}
+                <strong>{money(totalScheduled)}</strong>
+            </span>
+            </div>
+
+            {view === 'detail' && (
+                <div className="prestamos-crono-ver-todo">
+                  <button
+                      type="button"
+                      className="prestamos-btn-outline"
+                      onClick={() => setView('schedule')}
+                  >
+                    Ver cronograma completo →
+                  </button>
+                </div>
+            )}
+          </section>
+
+          <CronogramaImprimible
+              loan={selectedLoan}
+              rows={schedule}
+          />
+
+          {contractOpen && (
+              <ContratoPrestamo
+                  key={selectedLoan.id}
+                  loan={selectedLoan}
+                  rows={schedule}
+                  onClose={() => setContractOpen(false)}
+              />
+          )}
+        </div>
+    );
+  }
+
+  // PANTALLA PRINCIPAL
+  return (
+      <div className="page-loans prestamos-nuevo">
+        <section className="panel prestamos-panel-principal">
+          <header className="prestamos-main-header">
+            <div className="prestamos-main-title">
+            <span
+                className="prestamos-main-icon"
+                aria-hidden="true"
+            >
+              ▤
+            </span>
+
+              <div>
+                <h3>Préstamos registrados</h3>
+
+                <p>
+                  {isAdmin
+                      ? 'Todas las agencias'
+                      : me.agency}
+                </p>
+              </div>
+            </div>
+
+            <div className="prestamos-main-actions">
+              <button
+                  type="button"
+                  className="prestamos-btn-outline"
+                  onClick={() => setShowNationalSearch(true)}
+              >
+                Consultar cliente
+              </button>
+
+              {isAdvisor && (
+                  <button
+                      type="button"
+                      className="prestamos-btn-primary"
+                      onClick={() => void newLoan()}
+                  >
+                    + Otorgar préstamo
+                  </button>
+              )}
+            </div>
+          </header>
+
+          {/* FILTROS CON EL MISMO DISEÑO DE CLIENTES */}
+          <div className="prestamos-simple-filters">
+            <label className="prestamos-field prestamos-field-name">
+              Nombre o razón social
+
+              <input
+                  type="text"
+                  value={nameQuery}
+                  placeholder="Nombre del cliente o empresa"
+                  onChange={event =>
+                      setNameQuery(event.target.value)
+                  }
+              />
+            </label>
+
+            <label className="prestamos-field">
+              DNI o RUC
+
+              <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={11}
+                  value={documentQuery}
+                  placeholder="8 u 11 dígitos"
+                  onChange={event => {
+                    const value = event.target.value;
+
+                    if (/^\d{0,11}$/.test(value)) {
+                      setDocumentQuery(value);
+                    }
+                  }}
+              />
+            </label>
+
+            <label className="prestamos-field">
+              Tipo de documento
+
+              <select
+                  value={documentFilter}
+                  onChange={event =>
+                      setDocumentFilter(
+                          event.target.value as DocumentFilter
+                      )
+                  }
+              >
+                <option value="all">Todos</option>
+                <option value="DNI">DNI</option>
+                <option value="RUC10">RUC 10</option>
+                <option value="RUC20">RUC 20</option>
+              </select>
+            </label>
+
+            <label className="prestamos-field">
+              Préstamos
+
+              <select
+                  value={statusFilter}
+                  onChange={event =>
+                      setStatusFilter(
+                          event.target.value as LoanStatusFilter
+                      )
+                  }
+              >
+                <option value="all">Todos</option>
+                <option value="ACTIVO">Activos</option>
+                <option value="FINALIZADO">Finalizados</option>
+              </select>
+            </label>
+
+            {isAdmin && (
+                <label className="prestamos-field">
+                  Agencia
+
+                  <select
+                      value={agencyId}
+                      onChange={event =>
+                          setAgencyId(event.target.value)
+                      }
+                  >
+                    <option value="">
+                      Todas las agencias
+                    </option>
+
+                    {agencies.map(agency => (
+                        <option
+                            key={agency.id}
+                            value={agency.id}
+                        >
+                          {agency.name}
+                        </option>
+                    ))}
+                  </select>
+                </label>
+            )}
+
+            <div className="prestamos-filter-action">
+              <button
+                  type="button"
+                  className="prestamos-clear"
+                  onClick={clearFilters}
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          </div>
+
+          <div className="prestamos-list-heading">
+            <h4>Listado de préstamos</h4>
+
+            <span className="prestamos-counter">
+            {loading
+                ? 'Cargando…'
+                : `${visible.length} ${
+                    visible.length === 1
+                        ? 'préstamo'
+                        : 'préstamos'
+                }`}
+          </span>
+          </div>
+
+          <div className="prestamos-table-scroll">
+            <table className="prestamos-table">
+              <thead>
+              <tr>
+                <th>N.° Préstamo</th>
+                <th>Cliente</th>
+                <th>Documento</th>
+                {isAdmin && <th>Sede</th>}
+                <th>Capital original</th>
+                <th>Capital pendiente</th>
+                <th>Cuotas</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+              </thead>
+
+              <tbody>
+              {loading ? (
+                  <SkeletonRows
+                      columns={isAdmin ? 9 : 8}
+                      rows={4}
+                  />
+              ) : visible.length ? (
+                  visible.map(loan => {
+                    const identity = loanIdentity(loan);
+
+                    return (
+                        <tr key={loan.id}>
+                          <td className="prestamos-code">
+                            {loanCode(loan.id)}
+                          </td>
+
+                          <td className="prestamos-client">
+                            {identity.name}
+                          </td>
+
+                          <td>
+                            <strong className="prestamos-document">
+                              {identity.document}
+                            </strong>
+
+                            {identity.isRuc && (
+                                <small className="prestamos-document-extra">
+                                  DNI responsable:{' '}
+                                  {identity.responsibleDni}
+                                </small>
+                            )}
+                          </td>
+
+                          {isAdmin && (
+                              <td>{loan.agency}</td>
+                          )}
+
+                          <td>{money(loan.principal)}</td>
+
+                          <td>
+                            {money(loan.outstandingPrincipal)}
+                          </td>
+
+                          <td>{loan.installments}</td>
+
+                          <td>
+                        <span
+                            className={`prestamos-estado ${
+                                loan.status === 'ACTIVO'
+                                    ? 'activo'
+                                    : 'finalizado'
+                            }`}
+                        >
+                          {loanStatusText(loan.status)}
+                        </span>
+                          </td>
+
+                          <td>
+                            <button
+                                type="button"
+                                className="prestamos-cronograma-btn"
+                                disabled={loanLoading}
+                                onClick={() =>
+                                    void openLoan(loan, 'schedule')
+                                }
+                            >
+                              Cronograma
+                            </button>
+                          </td>
+                        </tr>
+                    );
+                  })
+              ) : (
+                  <tr>
+                    <td
+                        colSpan={isAdmin ? 9 : 8}
+                        className="prestamos-empty"
+                    >
+                      No se encontraron préstamos con
+                      los filtros seleccionados.
+                    </td>
+                  </tr>
+              )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="prestamos-list-footer">
+            Mostrando {visible.length} de{' '}
+            {loans.length} préstamos
+          </div>
+        </section>
+
+        {/* CONSULTA NACIONAL */}
+        {showNationalSearch && (
+            <Modal
+                title="Consultar cliente"
+                modalClassName="prestamos-consulta-modal"
+                close={() =>
+                    setShowNationalSearch(false)
+                }
+            >
+              <div className="prestamos-consulta-content">
+                <NationalClientSearch
+                    initialDni={initialDni}
+                    canGrantLoans={isAdvisor}
+                    onRequestLoan={requestLoanFromNational}
+                    onRegisterNew={() => {
+                      setShowNationalSearch(false);
+                      goToClients();
+                    }}
+                />
+              </div>
+            </Modal>
+        )}
+
+        {/* OTORGAR PRÉSTAMO */}
+        {create && (
+            <Modal
+                title={
+                  evaluation
+                      ? 'Propuesta de préstamo'
+                      : 'Evaluar préstamo'
+                }
+                modalClassName={
+                  evaluation
+                      ? 'loan-offer-modal'
+                      : undefined
+                }
+                close={closeLoanForm}
+            >
+              {evaluation ? (
+                  <div className="loan-offer-layout">
+                    <div className="loan-offer-scroll">
+                      <div className="loan-offer-intro">
+                  <span className="confirmation-step">
+                    PASO 2 DE 2 · PROPUESTA
+                  </span>
+
+                        <p>
+                          Revisa las condiciones y explica
+                          el cronograma al cliente antes de
+                          registrar el préstamo.
+                        </p>
+                      </div>
+
+                      <section className="loan-offer-borrower">
+                        <span>PRESTATARIO</span>
+
+                        <strong>
+                          {evaluation.result.borrowerName}
+                        </strong>
+
+                        <div className="loan-offer-borrower-facts">
+                    <span>
+                      {evaluation.result.documentType}
+                      {' '}
+                      {evaluation.result.borrowerDocument}
+                    </span>
+
+                          <span>
+                      DNI responsable:{' '}
+                            {evaluation.result.responsibleDni}
+                    </span>
+                        </div>
+                      </section>
+
+                      <div className="loan-offer-highlights">
+                        <div>
+                          <small>Capital solicitado</small>
+                          <strong>
+                            {money(evaluation.result.principal)}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <small>Primera cuota</small>
+                          <strong>
+                            {money(
+                                evaluation.result.monthlyPaymentEstimate
+                            )}
+                          </strong>
+                        </div>
+
+                        <div className="loan-offer-total">
+                          <small>Total a pagar</small>
+                          <strong>
+                            {money(
+                                evaluation.result.totalPaymentEstimate
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="loan-offer-meta">
+                  <span>
+                    {evaluation.result.installments}
+                    {' '}cuotas de 30 días
+                  </span>
+
+                        <span>
+                    TEA{' '}
+                          {formatRate(
+                              evaluation.result.annualRate
+                          )}
+                  </span>
+
+                        <span>
+                    Sede: {evaluation.result.agency}
+                  </span>
+                      </div>
+
+                      <section className="loan-offer-schedule">
+                        <div className="loan-proposal-heading">
+                          <b>Cronograma propuesto</b>
+
+                          <small>
+                            Fecha de evaluación:{' '}
+                            {evaluation.result.quoteDate}
+                          </small>
+                        </div>
+
+                        <div className="prestamos-table-scroll">
+                          <table className="loan-proposal-table">
+                            <thead>
+                            <tr>
+                              <th>Cuota</th>
+                              <th>Vencimiento</th>
+                              <th>Capital</th>
+                              <th>Interés</th>
+                              <th>Total</th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            {evaluation.result.schedulePreview.map(
+                                row => (
+                                    <tr key={row.number}>
+                                      <td>{row.number}</td>
+                                      <td>{formatDate(row.dueDate)}</td>
+                                      <td>{money(row.principal)}</td>
+                                      <td>{money(row.interest)}</td>
+                                      <td>
+                                        <b>{money(row.total)}</b>
+                                      </td>
+                                    </tr>
+                                )
+                            )}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="loan-proposal-mobile-cards">
+                          {evaluation.result.schedulePreview.map(
+                              row => (
+                                  <article
+                                      key={row.number}
+                                      className="loan-proposal-installment"
+                                  >
+                                    <div className="loan-proposal-installment-title">
+                                      <strong>
+                                        Cuota {row.number}
+                                      </strong>
+
+                                      <span>
+                              Vence {formatDate(row.dueDate)}
+                            </span>
+                                    </div>
+
+                                    <div className="loan-proposal-installment-values">
+                            <span>
+                              Capital
+                              <b>{money(row.principal)}</b>
+                            </span>
+
+                                      <span>
+                              Interés
+                              <b>{money(row.interest)}</b>
+                            </span>
+
+                                      <span className="loan-proposal-installment-total">
+                              Total
+                              <b>{money(row.total)}</b>
+                            </span>
+                                    </div>
+                                  </article>
+                              )
+                          )}
+                        </div>
+                      </section>
+
+                      <p className="loan-offer-note">
+                        Esta es una propuesta y todavía no es
+                        un préstamo registrado. La aceptación
+                        del cliente no sustituye la firma
+                        del contrato.
+                      </p>
+                    </div>
+
+                    <div className="loan-offer-footer">
+                      <label className="loan-client-acceptance">
+                        <input
+                            type="checkbox"
+                            checked={clientAccepted}
+                            disabled={confirmBusy}
+                            onChange={event =>
+                                setClientAccepted(
+                                    event.target.checked
+                                )
+                            }
+                        />
+
+                        <span>
+                    Confirmo que expliqué las cuotas,
+                    el plazo y el total a pagar,
+                    y que el cliente{' '}
+                          <b>aceptó expresamente</b>{' '}
+                          la propuesta.
+                  </span>
+                      </label>
+
+                      <div className="loan-proposal-actions">
+                        <button
+                            type="button"
+                            className="secondary"
+                            disabled={confirmBusy}
+                            onClick={() => {
+                              setEvaluation(undefined);
+                              setClientAccepted(false);
+                            }}
+                        >
+                          Modificar
+                        </button>
+
+                        <button
+                            type="button"
+                            className="secondary loan-decline"
+                            disabled={confirmBusy}
+                            onClick={rejectProposal}
+                        >
+                          No acepta
+                        </button>
+
+                        <button
+                            type="button"
+                            className="primary"
+                            disabled={
+                                confirmBusy ||
+                                !clientAccepted
+                            }
+                            onClick={() =>
+                                void confirmLoan()
+                            }
+                        >
+                          {confirmBusy
+                              ? 'Registrando…'
+                              : 'Aceptar y otorgar'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+              ) : (
+                  <form
+                      className="form-grid"
+                      onSubmit={evaluate}
+                  >
+                    <div className="confirmation-step span">
+                      PASO 1 DE 2 · EVALUACIÓN
+                    </div>
+
+                    {loanDocument && (
+                        <div className="document-result span">
+                  <span className="tag">
+                    Documento verificado
+                  </span>
+
+                          <h4>
+                            {loanDocument.borrowerName}
+                          </h4>
+
+                          <p>
+                            {loanDocument.documentType}
+                            {' '}
+                            {loanDocument.documentNumber}
+                            {' · '}
+                            DNI responsable:{' '}
+                            {loanDocument.responsibleDni}
+                          </p>
+
+                          {loanDocument.representativeName && (
+                              <p>
+                                Representante:{' '}
+                                {loanDocument.representativeName}
+                              </p>
+                          )}
+                        </div>
+                    )}
+
+                    <label className="span">
+                      {loanDocument
+                          ? 'DNI responsable'
+                          : 'Cliente'}
+
+                      <select
+                          name="clientId"
+                          disabled={Boolean(loanDocument)}
+                          defaultValue={
+                              prefilledClientId ??
+                              selectedClientId ??
+                              clients[0]?.id ??
+                              ''
+                          }
+                          required
+                      >
+                        {clients.map(client => (
+                            <option
+                                key={client.id}
+                                value={client.id}
+                            >
+                              {client.dni} · {client.names}
+                              {' '}{client.surnames}
+                            </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      Monto (S/)
+
+                      <input
+                          name="amount"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          pattern="[0-9]+"
+                          required
+                          value={amountInput}
+                          aria-invalid={Boolean(amountError)}
+                          onChange={event => {
+                            const value = event.target.value;
+
+                            if (/^\d*$/.test(value)) {
+                              setAmountInput(value);
+                              setAmountError(
+                                  value &&
+                                  (
+                                      Number(value) < 1 ||
+                                      Number(value) > 10000
+                                  )
+                                      ? 'Monto entre S/ 1 y S/ 10,000.'
+                                      : ''
+                              );
+                            }
+                          }}
+                      />
+
+                      {amountError && (
+                          <small
+                              className="loan-amount-error"
+                              role="alert"
+                          >
+                            {amountError}
+                          </small>
+                      )}
+                    </label>
+
+                    <label>
+                      Número de cuotas
+
+                      <input
+                          name="installments"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          pattern="[0-9]+"
+                          required
+                          value={installmentsInput}
+                          aria-invalid={
+                            Boolean(installmentsError)
+                          }
+                          onChange={event => {
+                            const value = event.target.value;
+
+                            if (/^\d*$/.test(value)) {
+                              setInstallmentsInput(value);
+                              setInstallmentsError(
+                                  value &&
+                                  (
+                                      Number(value) < 1 ||
+                                      Number(value) > 36
+                                  )
+                                      ? 'Entre 1 y 36 cuotas.'
+                                      : ''
+                              );
+                            }
+                          }}
+                      />
+
+                      {installmentsError && (
+                          <small
+                              className="loan-amount-error"
+                              role="alert"
+                          >
+                            {installmentsError}
+                          </small>
+                      )}
+                    </label>
+
+                    <div className="form-actions span">
+                      <button
+                          type="button"
+                          className="secondary"
+                          onClick={closeLoanForm}
+                      >
+                        Cancelar
+                      </button>
+
+                      <button className="primary">
+                        Evaluar solicitud
+                      </button>
+                    </div>
+                  </form>
+              )}
+            </Modal>
+        )}
+      </div>
+  );
+}

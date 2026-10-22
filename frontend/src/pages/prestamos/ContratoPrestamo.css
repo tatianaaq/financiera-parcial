@@ -1,0 +1,61 @@
+/* Contrato formal en prosa, sin tablas ni formularios. La impresión genera tres hojas A4. */
+.contrato-texto-modal { width:min(1100px,95vw)!important; max-height:94vh!important; }
+.contrato-texto-vista { display:flex; flex-direction:column; gap:12px; }
+.contrato-texto-ayuda { color:#51677f; margin:0; font-size:.9rem; line-height:1.5; }
+.contrato-texto-preview { background:#eaf0f7; border:1px solid #dce5ef; border-radius:12px; overflow:auto; max-height:60vh; padding:22px; }
+.contrato-texto-acciones { display:flex; justify-content:flex-end; gap:12px; }
+.contrato-texto-documento { font:12.4px/1.48 Georgia,'Times New Roman',serif; color:#13233b; }
+.contrato-texto-hoja { box-sizing:border-box; display:flex; flex-direction:column; background:#fff; width:210mm; min-height:297mm; margin:0 auto 22px; padding:15mm 17mm; box-shadow:0 3px 15px #0d28532b; }
+.contrato-texto-encabezado { display:flex; align-items:center; gap:14px; border-bottom:2px solid #1c65bd; padding-bottom:11px; font:11px/1.2 Arial,sans-serif; color:#25456e; }
+.contrato-texto-marca { display:flex; align-items:center; gap:8px; margin-right:auto; }
+.contrato-texto-marca>span:last-child { display:flex; flex-direction:column; }
+.contrato-texto-marca b { font-size:13px; }
+.contrato-texto-marca small { font-size:8px; color:#617890; }
+.contrato-texto-monograma { background:#1769c6; color:white; border-radius:6px; width:35px; height:35px; display:grid; place-items:center; font:bold 12px Arial,sans-serif; }
+.contrato-texto-referencia { font-weight:600; }
+.contrato-texto-pagina { color:#75869a; }
+.contrato-texto-cuerpo { padding-top:13px; flex:1; }
+.contrato-texto-cuerpo h1 { text-align:center; font:bold 19px/1.2 Arial,sans-serif; color:#143c72; margin:8px 0 3px; letter-spacing:.015em; }
+.contrato-texto-centro { text-align:center!important; font:11px Arial,sans-serif; color:#5b6e84; margin:4px 0 20px!important; }
+.contrato-texto-cuerpo .contrato-texto-subtitulo { font:bold 11.5px Arial,sans-serif; color:#185a9e; margin:18px 0 6px; letter-spacing:.04em; }
+.contrato-texto-cuerpo p { margin:6px 0 13px; text-align:justify; orphans:3; widows:3; }
+.contrato-texto-clausula { break-inside:avoid; page-break-inside:avoid; }
+.contrato-texto-clausula h2 { font:bold 11.6px/1.3 Arial,sans-serif; color:#164f8b; margin:14px 0 6px; letter-spacing:.015em; }
+.contrato-texto-clausula p { margin:0 0 15px 0; }
+.contrato-texto-pie { border-top:1px solid #d8e3ef; margin-top:14px; padding-top:6px; display:flex; justify-content:space-between; font:9px Arial,sans-serif; color:#5c6f85; }
+.contrato-texto-conformidad { margin-top:20px!important; }
+.contrato-texto-firmas { display:grid; grid-template-columns:1fr 1fr; gap:35px; margin:21px 0 18px; }
+.contrato-texto-firmante { display:flex; align-items:center; flex-direction:column; text-align:center; gap:4px; font:10px/1.25 Arial,sans-serif; }
+.contrato-texto-firmante strong { font-size:10px; }
+.contrato-texto-firmante small { font-size:9px; }
+.contrato-texto-area-firma { height:58px; width:100%; display:flex; justify-content:flex-end; align-items:flex-end; }
+.contrato-texto-huella { border:1px solid #8fa0b3; padding:18px 8px 5px; border-radius:4px; font:9px Arial,sans-serif; color:#60768f; }
+.contrato-texto-linea { border-bottom:1px solid #526980; width:100%; }
+.contrato-texto-anexo { border-top:1px solid #dce5ef; padding-top:10px; margin-top:10px!important; }
+.contrato-texto-aviso { font-size:9px; font-style:italic; color:#59697b; margin-top:14px!important; }
+body>.contrato-texto-documento { display:none; }
+@media(max-width:720px) { .contrato-texto-preview { padding:9px; } .contrato-texto-acciones { flex-wrap:wrap; } }
+@page { size:A4 portrait; margin:12mm; }
+@media print {
+  html,body { margin:0!important; padding:0!important; background:#fff!important; }
+  body.contrato-texto-print-active>* { display:none!important; }
+  body.contrato-texto-print-active>.contrato-texto-documento { display:block!important; }
+  body.contrato-texto-print-active>.contrato-texto-documento .contrato-texto-hoja { width:100%; min-height:273mm; padding:0; box-shadow:none; margin:0; break-after:page; page-break-after:always; }
+  body.contrato-texto-print-active>.contrato-texto-documento .contrato-texto-hoja:last-child { break-after:auto; page-break-after:auto; }
+  .contrato-texto-encabezado,.contrato-texto-monograma { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+
+/* Nombre comercial visible, distinto de la razón social legal configurada. */
+.contrato-texto-nombre-comercial { text-align:center!important; margin:4px 0 4px!important; font:800 10px Arial,sans-serif; letter-spacing:2px; color:#216bb9; }
+.contrato-texto-marca b { font-size:14px; }
+.contrato-texto-vista .contrato-texto-acciones .primary { min-width:192px; }
+@media print {
+  /* Oculta el cronograma cuando se imprime el contrato: ambos documentos
+     están montados al mismo tiempo dentro de la pantalla de Préstamos. */
+  body.contrato-texto-print-active > .cronograma-impresion { display:none!important; visibility:hidden!important; }
+  body.contrato-texto-print-active > .contrato-texto-documento { display:block!important; visibility:visible!important; }
+}
+
+/* Un contrato con datos institucionales faltantes se puede imprimir, pero solo como borrador. */
+.contrato-texto-marca-borrador { color:#617890; font-weight:500; font-size:9px; letter-spacing:.035em; }
+.contrato-texto-estado-borrador { color:#566475; border-top:1px solid #e1e7ef; padding-top:8px; font:10px/1.35 Arial,sans-serif; }

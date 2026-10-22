@@ -51,3 +51,18 @@ input:focus,select:focus { border-color:#3f8ddc; box-shadow:0 0 0 3px #1876dc16;
   .content { padding:22px 15px; }
 }
 @media(max-width:500px) { .content { padding:17px 11px; } .topbar h2 { font-size:20px; } }
+
+/* Diálogos de acciones: legibles, adaptables y con el cierre siempre accesible. */
+.finance-modal { width: min(610px,calc(100vw - 24px)); max-height: min(88vh, 850px); overflow-y: auto; border: 1px solid #e0e9f4; border-radius: 18px; box-shadow: 0 30px 90px #071f4090; }
+.finance-modal::backdrop { background: #0b234c85; backdrop-filter: blur(3px); }
+.finance-modal .modal-inner { padding: 0; }
+.finance-modal-header { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 22px 27px 19px; background: #fff; border-bottom: 1px solid #eaf0f7; }
+.finance-modal-header .eyebrow { color: #4885c8; font-size: 9px; }
+.finance-modal-header h3 { margin: 5px 0 0; font-size: 21px; color: #183454; }
+.finance-modal-header .x { float: none; position: static; width: 34px; height: 34px; flex: none; padding: 0; border-radius: 9px; background: #f4f7fb; color: #7388a3; font-size: 22px; }
+.finance-modal-header .x:hover { background: #eaf1fb; color: #1b5a9d; }
+.finance-modal-body { padding: 23px 27px 27px; }
+.finance-modal .modal-alert { margin: 14px 27px 0; }
+.finance-modal .form-actions { padding-top: 17px; border-top: 1px solid #edf1f6; }
+.finance-modal input,.finance-modal select { min-height: 42px; }
+@media(max-width:570px) { .finance-modal-header { padding: 18px 17px 15px; } .finance-modal-body { padding: 18px 17px 21px; } .finance-modal .modal-alert { margin: 12px 17px 0; } .finance-modal-header h3 { font-size: 18px; } }
