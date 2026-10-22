@@ -59,3 +59,118 @@
 @media(max-width:900px) { .loan-identity { grid-template-columns: 1fr; } .loan-identity-facts { grid-template-columns: repeat(2,minmax(0,1fr)); } .loan-facts-grid { grid-template-columns: 1fr; } .loan-summary-cards { grid-template-columns: repeat(3,minmax(0,1fr)); } }
 @media(max-width:1050px) { .loan-filter-row { grid-template-columns: repeat(2,minmax(0,1fr)); } .loan-filter-row .filter-search { grid-column: span 2; } }
 @media(max-width:650px) { .loan-filter-row { grid-template-columns: 1fr; } .loan-filter-row .filter-search { grid-column: auto; } .loan-summary-cards { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+
+/* Parche 02E: propuesta adaptable, con un único desplazamiento vertical y pie siempre visible. */
+#modal.loan-offer-modal {
+  width: min(760px, calc(100vw - 28px));
+  max-width: none;
+  height: min(780px, calc(100dvh - 28px));
+  max-height: calc(100dvh - 28px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #d9e5f4;
+  border-radius: 16px;
+  background: #fff;
+}
+#modal.loan-offer-modal #modal-form { height: 100%; min-height: 0; }
+#modal.loan-offer-modal .modal-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+#modal.loan-offer-modal .modal-inner > h3 {
+  flex: none;
+  margin: 0;
+  padding: 20px 62px 17px 24px;
+  border-bottom: 1px solid #e7edf5;
+  font-size: 20px;
+  line-height: 1.25;
+}
+#modal.loan-offer-modal .x { top: 13px; right: 16px; }
+.loan-offer-layout { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.loan-offer-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 19px 24px 17px;
+  scrollbar-gutter: stable;
+}
+.loan-offer-intro { margin-bottom: 14px; }
+.loan-offer-intro p { margin: 7px 0 0; color: #61758e; font-size: 12px; line-height: 1.5; }
+.loan-offer-borrower { display: grid; gap: 7px; min-width: 0; border: 1px solid #dbe7f5; background: #f5f9fe; padding: 13px 15px; border-radius: 10px; }
+.loan-offer-borrower > span { color: #4772a0; font-size: 10px; font-weight: 800; letter-spacing: 0.8px; }
+.loan-offer-borrower > strong { color: #163759; font-size: 14px; overflow-wrap: anywhere; }
+.loan-offer-borrower-facts { display:flex; gap: 7px 18px; flex-wrap:wrap; color: #5b7593; font-size: 11px; }
+.loan-offer-highlights { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; margin-top: 13px; }
+.loan-offer-highlights > div { display:grid; gap:7px; min-width:0; padding: 12px 13px; border: 1px solid #e1eaf6; border-radius: 9px; background: #fff; }
+.loan-offer-highlights small { color:#607996; font-size: 10px; }
+.loan-offer-highlights strong { color:#173a65; font-size: 17px; font-weight: 800; overflow-wrap:anywhere; }
+.loan-offer-highlights .loan-offer-total { background:#eaf3ff; border-color: #cbdff7; }
+.loan-offer-highlights .loan-offer-total strong { color: #075fc0; }
+.loan-offer-meta { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0 17px; }
+.loan-offer-meta span { background:#f0f4fa; color:#506987; padding: 6px 10px; border-radius: 999px; font-size: 11px; }
+.loan-offer-schedule { min-width:0; }
+.loan-proposal-heading { display:flex; justify-content:space-between; gap:7px 16px; align-items:baseline; flex-wrap:wrap; margin:0 0 10px; }
+.loan-proposal-heading b { color:#183d6b; font-size:13px; }
+.loan-proposal-heading small { color:#667f9c; font-size:10px; line-height:1.4; }
+.loan-proposal-table { table-layout: fixed; width: 100%; min-width:0; border-collapse: collapse; font-size: 11px; }
+.loan-proposal-table th { text-align: left; color:#496788; background:#edf4fd; padding:10px; font-size:10px; white-space:nowrap; }
+.loan-proposal-table td { color:#294564; padding: 10px; border-top:1px solid #e8eff7; white-space: nowrap; }
+.loan-proposal-table th:first-child { width: 12%; }
+.loan-proposal-table th:nth-child(2) { width: 24%; }
+.loan-proposal-table th:nth-child(3),.loan-proposal-table th:nth-child(4) { width: 20%; }
+.loan-proposal-table th:last-child { width: 24%; }
+.loan-proposal-table b { color: #0d64c5; }
+.loan-proposal-mobile-cards { display:none; }
+.loan-offer-note { margin:13px 0 0; padding:11px 12px; background:#fff7e9; border:1px solid #f7e4be; border-radius:8px; color:#86601f; font-size:11px; line-height:1.5; }
+.loan-offer-footer { flex:none; min-width:0; border-top:1px solid #e3ebf5; background: #fff; padding: 12px 24px 17px; box-shadow:0 -5px 18px #18345e0a; }
+.loan-client-acceptance { display:flex!important; align-items:flex-start; min-width:0; gap:10px!important; margin:0; padding:10px 11px; background:#f6faff; border:1px solid #d7e5f7; border-radius:9px; color:#344f6e!important; font-size:11px!important; line-height:1.5; cursor:pointer; }
+.loan-client-acceptance input { display:block!important; width:17px!important; height:17px; margin:2px 0 0!important; padding:0; flex:none; accent-color:#126add; }
+.loan-client-acceptance span { flex:1; min-width:0; }
+.loan-proposal-actions { display:flex; justify-content:flex-end; gap:9px; flex-wrap:wrap; margin-top:12px; }
+.loan-proposal-actions button { margin:0; white-space:normal; }
+.loan-proposal-actions .loan-decline { color:#a04743; border:1px solid #f0d6d2; background:#fff8f7; }
+.loan-proposal-actions .primary { min-width:165px; }
+@media (max-width: 630px) {
+  #modal.loan-offer-modal { width: calc(100vw - 20px); height: calc(100dvh - 20px); max-height: calc(100dvh - 20px); border-radius:12px; }
+  #modal.loan-offer-modal .modal-inner > h3 { font-size:17px; padding:15px 54px 14px 16px; }
+  #modal.loan-offer-modal .x { top: 8px; right: 9px; }
+  .loan-offer-scroll { padding: 13px 15px 16px; scrollbar-gutter:auto; }
+  .loan-offer-borrower { padding:12px; }
+  .loan-offer-highlights { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .loan-offer-highlights .loan-offer-total { grid-column:1/-1; }
+  .loan-offer-highlights strong { font-size:15px; }
+  .loan-offer-meta { margin-bottom:14px; }
+  .loan-proposal-table { display:none; }
+  .loan-proposal-mobile-cards { display:grid; gap:8px; }
+  .loan-proposal-installment { min-width:0; border:1px solid #e1eaf6; border-radius:9px; background:#fff; padding:10px 12px; }
+  .loan-proposal-installment-title { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px 12px; font-size:12px; color:#173c67; }
+  .loan-proposal-installment-title span { color:#617994; font-size:11px; }
+  .loan-proposal-installment-values { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:6px; padding-top:8px; }
+  .loan-proposal-installment-values span { display:grid; gap:3px; min-width:0; color:#718198; font-size:10px; }
+  .loan-proposal-installment-values b { color:#244363; font-size:11px; overflow-wrap:anywhere; }
+  .loan-proposal-installment-values .loan-proposal-installment-total b { color:#0d64c5; }
+  .loan-offer-footer { padding:10px 13px 13px; }
+  .loan-client-acceptance { font-size:10px!important; padding:9px; }
+  .loan-proposal-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin-top:9px; }
+  .loan-proposal-actions button { padding:10px 8px; font-size:12px; }
+  .loan-proposal-actions .primary { grid-column:1/-1; grid-row:1; min-width:0; }
+}
+@media (max-width: 350px) {
+  .loan-offer-highlights { grid-template-columns:1fr; }
+  .loan-offer-highlights .loan-offer-total { grid-column:auto; }
+  .loan-proposal-installment-values { grid-template-columns:1fr 1fr; }
+}
+
+/* Parche 02F: mostrar primero prestatario y documento contractual; DNI como dato de riesgo. */
+.loan-identity-facts { grid-template-columns: repeat(auto-fit,minmax(118px,1fr)); }
+.loan-document-main { display: block; font-weight: 700; color: #1d416c; white-space: nowrap; }
+.loan-document-secondary { display: block; margin-top: 4px; font-size: 10px; color: #6a7e96; white-space: nowrap; }
+.loan-workspace .workspace-heading p { line-height: 1.7; overflow-wrap: anywhere; }
+@media(max-width:620px) { .loan-identity-facts { grid-template-columns: repeat(2,minmax(0,1fr)); } .loan-document-main,.loan-document-secondary { white-space: normal; } }

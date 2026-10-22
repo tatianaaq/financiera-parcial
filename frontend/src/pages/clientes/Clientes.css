@@ -73,3 +73,51 @@
   .dni-registration .input-action button { width: 100%; }
   .dni-registration .form-actions { flex-wrap: wrap; }
 }
+
+.existing-national-client { border:1px solid #bdded0; background:#f1faf6; border-radius:10px; padding:16px; }
+.existing-national-client p { margin:6px 0 12px; color:#34526a; }
+.existing-national-client button { margin-top:4px; }
+
+.ruc-lookup { margin: 0 0 20px; }
+.ruc-lookup .national-client-form { max-width:600px; margin-top:14px; }
+.ruc-lookup .national-client-form-row { display:flex; gap:12px; flex-wrap:wrap; }
+.ruc-lookup .national-client-form-row input { flex:1; min-width:180px; }
+.ruc-result { padding:16px; border:1px solid #dee9f4; border-radius:10px; margin-top:15px; }
+.ruc-result p { margin:6px 0; }
+
+/* Parche 02A: consulta única y resultados compactos, siguiendo el estilo azul existente. */
+.document-lookup { max-width: 760px; }
+.document-lookup-form { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 12px; margin-top: 16px; }
+.document-lookup-form label { display: grid; gap: 7px; min-width: 0; font-size: 12px; font-weight: 600; color: #435b79; }
+.document-lookup-form input,.document-lookup-form select { width: 100%; min-width: 0; }
+.document-lookup-form button { white-space: nowrap; }
+.document-result { margin-top: 16px; padding: 15px 17px; border: 1px solid #dce9f5; border-radius: 12px; background: #f7fbff; }
+.document-result h4 { margin: 9px 0 6px; color: #183754; font-size: 15px; }
+.document-result p { margin: 7px 0; color: #536a82; font-size: 12px; line-height: 1.5; }
+.document-result button { margin-top: 10px; }
+.document-result details { margin: 11px 0; border-top: 1px solid #dae6f2; padding-top: 9px; }
+.document-result summary { cursor: pointer; color: #195a8b; font-size: 12px; font-weight: 700; }
+.document-result ul { margin: 10px 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.document-result li { display: grid; gap: 3px; background: #fff; border: 1px solid #e1eaf3; border-radius: 8px; padding: 10px; font-size: 12px; }
+.document-result li small { color: #667992; }
+.document-result .document-pending { padding: 9px 11px; background: #fff8e9; border: 1px solid #f0dcac; border-radius: 8px; color: #755a29; }
+@media(max-width:720px){ .document-lookup-form { grid-template-columns: 1fr; } .document-lookup-form button { width: 100%; } }
+
+/* Vinculación RUC 10/20: expandible, legible y sin tarjetas duplicadas. */
+.representative-choices { display:grid; gap:7px; max-height:240px; overflow-y:auto; margin-top:12px; padding-right:4px; }
+.document-result .representative-choice { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #dce7f2; border-radius:9px; background:#fff; cursor:pointer; font-size:12px; }
+.representative-choice:has(input:checked) { border-color:#2f79bb; background:#eef6ff; }
+.representative-choice input { width:auto; flex:none; accent-color:#2677c8; }
+.representative-choice span { display:grid; gap:3px; line-height:1.4; min-width:0; }
+.representative-choice small { color:#607a96; }
+.document-result .ruc-dni-field { display:grid; gap:7px; margin:14px 0 6px; font-size:12px; font-weight:700; color:#35536d; }
+.document-result .ruc-dni-field input { width:100%; max-width:300px; }
+.document-result .ruc-acknowledgement { display:flex; gap:10px; align-items:flex-start; margin:13px 0 7px; line-height:1.55; color:#37546c; font-size:12px; }
+.ruc-acknowledgement input { width:16px; height:16px; flex:none; margin-top:2px; accent-color:#2677c8; }
+.document-result .ruc-verified { display:grid; gap:3px; padding:11px; margin-top:10px; border-radius:8px; background:#e9f5ef; color:#216a4b; font-size:12px; }
+.ruc-verified small { color:#366e57; }
+
+/* Parche 02F: explicación de campos pendientes sin relajar las validaciones. */
+.dni-registration .dni-missing-fields { padding: 11px 13px; margin: 0; border: 1px solid #f0ddb2; border-radius: 8px; background: #fff9ee; color: #765a2f; font-size: 12px; line-height: 1.55; }
+.dni-registration .dni-missing-fields strong { color: #45556c; }
+.client-document-secondary { display:block; margin-top:4px; color:#71839b; font-size:10px; font-weight:400; }

@@ -42,10 +42,29 @@ import java.time.LocalDate;
  @ManyToOne(optional=false) Client client;
  @ManyToOne(optional=false) Agency agency;
  @ManyToOne(optional=false) AppUser createdBy;
+ // El cliente es SIEMPRE el DNI responsable para el control nacional de riesgo.
+ @Column(name="document_type",nullable=false,length=5) String documentType="DNI";
+ @Column(name="borrower_document",nullable=false,length=11) String borrowerDocument;
+ @Column(name="responsible_dni",nullable=false,length=8) String responsibleDni;
+ @Column(name="borrower_name",length=255) String borrowerName;
+ @Column(name="representative_name",length=180) String representativeName;
+ @Column(name="representative_role",length=120) String representativeRole;
+ @ManyToOne @JoinColumn(name="company_id") Company company;
+ @ManyToOne @JoinColumn(name="document_link_id") DocumentLink documentLink;
  BigDecimal principal; BigDecimal outstandingPrincipal; BigDecimal annualRate=new BigDecimal("0.30");
  int installments; boolean insurance; LocalDate disbursedAt;
+ /** Marca temporal de aceptación comunicada por el asesor; no es firma contractual. */
+ @Column(name="acceptance_recorded_at") java.time.Instant acceptanceRecordedAt;
  @Column(nullable=false) String status="ACTIVO";
  Loan(){}
+ @PrePersist void ensureLegacyDniIdentity(){
+  if(client!=null){
+   if(documentType==null)documentType="DNI";
+   if(borrowerDocument==null)borrowerDocument=client.dni;
+   if(responsibleDni==null)responsibleDni=client.dni;
+   if(borrowerName==null)borrowerName=client.names+" "+client.surnames;
+  }
+ }
 }
 @Entity @Table(name="installments") class Installment {
  @Id @GeneratedValue(strategy=GenerationType.IDENTITY) Long id;
@@ -71,4 +90,27 @@ import java.time.LocalDate;
  @ManyToOne(optional=false) Installment installment;
  BigDecimal principalAmount, interestAmount, insuranceAmount;
  PaymentAllocation(){}
+}
+
+/** RUC20: persona jurídica prestataria, distinta del DNI usado para medir el riesgo. */
+@Entity @Table(name="companies") class Company {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) Long id;
+ @Column(nullable=false,unique=true,length=11) String ruc;
+ @Column(name="legal_name",nullable=false,length=255) String legalName;
+ @Column(name="tax_status",length=50) String taxStatus;
+ Company(){}
+}
+/** Vinculación comprobada por un asesor. Solo una identidad responsable por RUC en este flujo. */
+@Entity @Table(name="document_links") class DocumentLink {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) Long id;
+ @Column(name="document_type",nullable=false,length=5) String documentType;
+ @Column(name="document_number",nullable=false,unique=true,length=11) String documentNumber;
+ @ManyToOne(optional=false) Client client;
+ @ManyToOne Company company;
+ @Column(name="representative_name",length=180) String representativeName;
+ @Column(name="representative_role",length=120) String representativeRole;
+ @Column(name="documents_reviewed",nullable=false) boolean documentsReviewed;
+ @Column(name="checked_at",nullable=false) java.time.Instant checkedAt;
+ @ManyToOne(optional=false) @JoinColumn(name="checked_by_id") AppUser checkedBy;
+ DocumentLink(){}
 }

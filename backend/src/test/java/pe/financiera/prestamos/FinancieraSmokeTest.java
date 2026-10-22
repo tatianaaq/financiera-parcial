@@ -27,7 +27,9 @@ import static org.junit.jupiter.api.Assertions.*;
         "app.seed.enabled=true",
         "app.seed-password=TestPass123!",
         "app.admin.password=TestPass123!",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "app.admin.username=admin",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.flyway.enabled=false"
 })
 @Import(JsonPeTestConfiguration.class)
 class FinancieraSmokeTest {
@@ -159,7 +161,7 @@ class FinancieraSmokeTest {
         assertEquals("Trujillo", byDniClient.get("agency"), "DNI lookup must resolve the lazy agency relation while mapping the response.");
         assertEquals(trujilloAgencyId, ((Number) byDniClient.get("agencyId")).longValue());
 
-        Map<String, Object> request = Map.of("clientId", clientId, "amount", 1200, "installments", 6);
+        Map<String, Object> request = Map.of("clientId", clientId, "amount", 1200, "installments", 6, "customerAccepted", true, "quoteDate", LoanCalendar.todayInLima().toString());
         Map<String, Object> decimalRequest = Map.of("clientId", clientId, "amount", new BigDecimal("1200.50"), "installments", 6);
         assertEquals(HttpStatus.BAD_REQUEST, trujillo.exchange(url("/api/loans/evaluation"), HttpMethod.POST,
                 new HttpEntity<>(decimalRequest), Map.class).getStatusCode(),

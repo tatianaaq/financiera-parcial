@@ -2,6 +2,7 @@
 backend/target/
 backend/data/
 frontend/node_modules/
+backend/node_modules/
 frontend/dist/
 # Credenciales y configuraciones locales
 .env
@@ -34,3 +35,11 @@ application-postgresql.yaml
 
 # Archivos comprimidos
 *.zip
+
+# Respaldos exportados de Supabase: nunca publicarlos
+backup.sql
+backup_datos.sql
+
+# Nunca subir datos de clientes, registros o respaldos SQL
+*backup*.sql
+*.pgdump
