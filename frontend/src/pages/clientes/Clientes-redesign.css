@@ -1,0 +1,399 @@
+
+/* ============================================
+   FINANCIERA V2
+   REDISEÑO VISUAL - MÓDULO CLIENTES
+   Aplicable a todas las agencias
+   ============================================ */
+
+/* Contenedor principal */
+.client-directory-v2 {
+    width: 100%;
+    max-width: 1450px;
+    margin: 0 auto;
+    color: #12254a;
+}
+
+/* Tarjetas principales */
+.client-directory-v2 .client-search-panel,
+.client-directory-v2 .client-directory-panel {
+    background: #ffffff;
+    border: 1px solid #e5edf7;
+    border-radius: 16px;
+    box-shadow: 0 5px 20px rgba(29, 69, 125, 0.055);
+    transition: box-shadow 0.2s ease;
+}
+
+.client-directory-v2 .client-search-panel {
+    padding: 25px 28px;
+}
+
+.client-directory-v2 .client-directory-panel {
+    padding: 24px 26px 20px;
+}
+
+/* Encabezados */
+.client-directory-v2 .directory-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.client-directory-v2 .directory-icon {
+    width: 45px;
+    height: 45px;
+    flex: 0 0 45px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: #eaf3ff;
+    color: #0866e7;
+    font-size: 25px;
+}
+
+.client-directory-v2 .directory-heading h3 {
+    margin: 0 0 5px;
+    font-size: 18px;
+    font-weight: 750;
+    letter-spacing: -0.4px;
+    color: #10234b;
+}
+
+.client-directory-v2 .directory-heading p {
+    margin: 0;
+    font-size: 12px;
+    color: #7183a1;
+    line-height: 1.5;
+}
+
+/* Filtros */
+.client-directory-v2 .directory-filter-grid {
+    display: grid;
+    grid-template-columns:
+    minmax(160px, 1.35fr)
+    minmax(150px, 1.1fr)
+    minmax(145px, 1fr)
+    minmax(140px, 1fr)
+    auto;
+    align-items: end;
+    gap: 15px;
+    margin-top: 23px;
+}
+
+.client-directory-v2 .directory-filter-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    color: #243b62;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.client-directory-v2 .directory-filter-grid .search {
+    width: 100%;
+    min-width: 0;
+    height: 43px;
+    min-height: 43px;
+    padding: 0 13px;
+    background: #ffffff;
+    border: 1px solid #d8e3f1;
+    border-radius: 9px;
+    color: #18365c;
+    font-size: 12px;
+    outline: none;
+    box-shadow: none;
+    transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+}
+
+.client-directory-v2 .directory-filter-grid .search:focus {
+    border-color: #146bfa;
+    box-shadow: 0 0 0 3px rgba(20, 107, 250, 0.10);
+}
+
+.client-directory-v2 .directory-filter-grid .search::placeholder {
+    color: #97a5b9;
+}
+
+/* Botones de filtros */
+.client-directory-v2 .directory-filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.client-directory-v2 .directory-filter-actions .primary {
+    height: 43px;
+    min-height: 43px;
+    padding: 0 20px;
+    border: 1px solid #0765e9;
+    border-radius: 9px;
+    background: #0869f6;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.client-directory-v2 .directory-filter-actions .primary:hover {
+    background: #0057d9;
+}
+
+.client-directory-v2 .directory-filter-actions .link {
+    min-height: 43px;
+    padding: 0 11px;
+    color: #1767d7;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+/* Encabezado del listado */
+.client-directory-v2 .directory-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.client-directory-v2 .directory-list-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.client-directory-v2 .directory-list-actions button {
+    min-height: 40px;
+    padding: 0 15px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.client-directory-v2 .directory-list-actions .primary {
+    background: #0869f6;
+    border: 1px solid #0869f6;
+    color: white;
+    box-shadow: 0 3px 9px rgba(8, 105, 246, 0.13);
+}
+
+.client-directory-v2 .directory-list-actions .primary:hover {
+    background: #0057d9;
+}
+
+.client-directory-v2 .directory-list-actions .primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Tabla */
+.client-directory-v2 .directory-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e7edf6;
+    border-radius: 11px;
+}
+
+.client-directory-v2 .directory-table {
+    width: 100%;
+    min-width: 870px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.client-directory-v2 .directory-table thead th {
+    padding: 15px 13px;
+    background: #f2f6fc;
+    color: #667c9a;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.45px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.client-directory-v2 .directory-table tbody td {
+    height: 58px;
+    padding: 12px 13px;
+    background: #ffffff;
+    border-top: 1px solid #ecf1f8;
+    color: #233b60;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.client-directory-v2 .directory-table tbody tr:hover td {
+    background: #f7faff;
+}
+
+/* Tipos de cliente */
+.client-directory-v2 .directory-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 6px 11px;
+    background: #eaf3ff;
+    color: #0868d6;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.client-directory-v2 .directory-type-company {
+    background: #f4edff;
+    color: #8051be;
+}
+
+/* Documento e identificación */
+.client-directory-v2 .directory-document {
+    color: #304769;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.client-directory-v2 .directory-name {
+    color: #142b50;
+    font-weight: 700;
+    min-width: 170px;
+}
+
+/* Cantidad de créditos */
+.client-directory-v2 .directory-credit-count {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 29px;
+    height: 27px;
+    padding: 0 7px;
+    border-radius: 7px;
+    background: #eaf3ff;
+    color: #0866e7;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+/* Estados crediticios */
+.client-directory-v2 .directory-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 11px;
+    border-radius: 20px;
+    background: #e9f8f1;
+    color: #168660;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.client-directory-v2 .directory-status-danger {
+    background: #fff0ee;
+    color: #ba4444;
+}
+
+.client-directory-v2 .directory-status-muted {
+    background: #f0f3f8;
+    color: #77869b;
+}
+
+/* Botón ver detalle */
+.client-directory-v2 .directory-detail-button {
+    min-width: 105px;
+    min-height: 34px;
+    padding: 7px 13px;
+    border: 1px solid #bfd7fc;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #0866d7;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+            background 0.2s ease,
+            border-color 0.2s ease;
+}
+
+.client-directory-v2 .directory-detail-button:hover {
+    background: #eaf3ff;
+    border-color: #7caef5;
+}
+
+/* Contador de registros */
+.client-directory-v2 .directory-count {
+    margin: 18px 2px 0;
+    color: #8091aa;
+    font-size: 11px;
+}
+
+/* Estado sin resultados */
+.client-directory-v2 .directory-empty {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+    padding: 35px 15px;
+    text-align: center;
+}
+
+.client-directory-v2 .directory-empty b {
+    font-size: 14px;
+    color: #243b60;
+}
+
+.client-directory-v2 .directory-empty p {
+    font-size: 12px;
+    color: #8190a7;
+}
+
+/* Adaptación a pantallas medianas */
+@media (max-width: 1180px) {
+    .client-directory-v2 .directory-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .client-directory-v2 .directory-filter-actions {
+        justify-content: flex-start;
+    }
+}
+
+/* Adaptación a celulares */
+@media (max-width: 680px) {
+    .client-directory-v2 .client-search-panel,
+    .client-directory-v2 .client-directory-panel {
+        padding: 18px 16px;
+        border-radius: 12px;
+    }
+
+    .client-directory-v2 .directory-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .client-directory-v2 .directory-list-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .client-directory-v2 .directory-list-actions {
+        justify-content: stretch;
+    }
+
+    .client-directory-v2 .directory-list-actions button {
+        flex: 1 1 auto;
+    }
+
+    .client-directory-v2 .directory-heading h3 {
+        font-size: 16px;
+    }
+
+    .client-directory-v2 .directory-icon {
+        width: 41px;
+        height: 41px;
+        flex-basis: 41px;
+    }
+}

@@ -71,6 +71,50 @@ class DniRegistrationTest {
     }
 
     @Test
+    void consultaDeExistenciaDevuelve200SinInvocarProveedor() {
+        String dni = "82100012";
+        TestRestTemplate trujillo = advisor("trujillo");
+        ResponseEntity<Map> noExiste = trujillo.getForEntity(url("/api/clients/registration-status?dni=" + dni), Map.class);
+        assertEquals(HttpStatus.OK, noExiste.getStatusCode());
+        assertEquals(false, noExiste.getBody().get("exists"));
+        assertEquals(0, provider.callsFor(dni));
+
+        provider.respond(dni, identity(dni));
+        Map ticket = lookup(trujillo, dni).getBody();
+        ResponseEntity<Map> creado = trujillo.exchange(url("/api/clients"), HttpMethod.POST,
+                new HttpEntity<>(Map.of("dni", dni, "names", ticket.get("names"),
+                        "surnames", ticket.get("surnames"), "verificationId", ticket.get("verificationId"))), Map.class);
+        assertEquals(HttpStatus.OK, creado.getStatusCode());
+
+        ResponseEntity<Map> existe = advisor("piura").getForEntity(url("/api/clients/registration-status?dni=" + dni), Map.class);
+        assertEquals(HttpStatus.OK, existe.getStatusCode());
+        assertEquals(true, existe.getBody().get("exists"));
+        assertEquals("Trujillo", existe.getBody().get("agency"));
+        assertEquals(1, provider.callsFor(dni));
+    }
+
+    @Test
+    void unAdministradorNoPuedeVerificarDniYRecibeMotivoEntendible() {
+        String dni = "82100013";
+        ResponseEntity<Map> denied = rest.withBasicAuth("admin", "TestPass123!")
+                .exchange(url("/api/clients/dni-lookup"), HttpMethod.POST,
+                        new HttpEntity<>(Map.of("dni", dni)), Map.class);
+        assertEquals(HttpStatus.FORBIDDEN, denied.getStatusCode());
+        assertTrue(denied.getBody().get("error").toString().contains("ADVISOR"));
+        assertEquals(0, provider.callsFor(dni));
+    }
+
+    @Test
+    void perfilDelAsesorExponeEstadoDeAgenciaSinCredenciales() {
+        ResponseEntity<Map> response = advisor("trujillo").getForEntity(url("/api/me"), Map.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("ADVISOR", response.getBody().get("role"));
+        assertEquals(true, response.getBody().get("agencyEnabled"));
+        assertEquals(true, response.getBody().get("canRegisterClients"));
+        assertFalse(response.getBody().containsKey("password"));
+    }
+
+    @Test
     void rechazaDniInvalidoYNoLlamaAlProveedor() {
         ResponseEntity<Map> response = advisor("trujillo").exchange(url("/api/clients/dni-lookup"), HttpMethod.POST,
                 new HttpEntity<>(Map.of("dni", "123 4567")), Map.class);

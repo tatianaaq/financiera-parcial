@@ -1,0 +1,46 @@
+/* La sección nunca interfiere con el diseño de pantalla. */
+.cronograma-impresion { display: none; }
+
+@page { size: A4 portrait; margin: 14mm 11mm 16mm; }
+@media print {
+  html, body { background: #fff !important; }
+  /* React dibuja el documento directamente en body; se oculta la aplicación solo cuando existe el documento. */
+  body:has(> .cronograma-impresion) > #root { display: none !important; }
+  body > .cronograma-impresion, body > .cronograma-impresion * { visibility: visible !important; }
+  .cronograma-impresion {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #182c43 !important;
+    font: 9pt/1.4 Arial, Helvetica, sans-serif !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .cronograma-impresion h1 { font: bold 21pt/1.1 Arial,sans-serif; margin: 5px 0 8px; color: #173a61; }
+  .cronograma-impresion p { margin: 0; }
+  .cronograma-impresion-encabezado { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 13px; border-bottom: 2px solid #2d6fb4; }
+  .cronograma-impresion-marca { font-size: 8pt; letter-spacing: 1px; font-weight: bold; color: #216cb6; }
+  .cronograma-impresion-subtitulo { color: #536981; }
+  .cronograma-impresion-agencia { text-align: right; min-width: 120px; }
+  .cronograma-impresion-agencia b, .cronograma-impresion-agencia span { display: block; }
+  .cronograma-impresion-agencia span { font-size: 8pt; color: #5a6e86; margin-top: 7px; }
+  .cronograma-impresion-datos { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 9px 13px; padding: 12px; margin-bottom: 15px; border: 1px solid #dce5f0; border-radius: 5px; }
+  .cronograma-impresion-datos div { min-width: 0; overflow-wrap: anywhere; }
+  .cronograma-impresion-datos span { display: block; color: #687d93; font-size: 7.5pt; margin-bottom: 3px; }
+  .cronograma-impresion-datos strong { display: block; font-size: 8.5pt; }
+  .cronograma-impresion-tabla { width: 100%; border-collapse: collapse; font-size: 7.3pt; table-layout: auto; }
+  .cronograma-impresion-tabla thead { display: table-header-group; }
+  .cronograma-impresion-tabla tfoot { display: table-footer-group; }
+  .cronograma-impresion-tabla th, .cronograma-impresion-tabla td { padding: 6px 4px; border-bottom: 1px solid #dfe6ed; vertical-align: top; text-align: right; white-space: nowrap; }
+  .cronograma-impresion-tabla th:nth-child(2), .cronograma-impresion-tabla td:nth-child(2) { text-align: left; }
+  .cronograma-impresion-tabla thead th { background: #eaf2fb !important; border-bottom: 1px solid #9bbbdc; color: #1b426a; font-size: 7.1pt; }
+  .cronograma-impresion-tabla tr { break-inside: avoid; page-break-inside: avoid; }
+  .cronograma-impresion-tabla tbody tr:nth-child(even) { background: #f8fafc !important; }
+  .cronograma-impresion-tabla tfoot th, .cronograma-impresion-tabla tfoot td { font-weight: bold; background: #eaf2fb !important; border-top: 1px solid #9bbbdc; }
+  .cronograma-impresion-tabla tfoot th { text-align: left; }
+  .cronograma-impresion-pie { margin-top: 20px; padding-top: 9px; border-top: 1px solid #dfe6ed; font-size: 7.7pt; color: #536981; break-inside: avoid; }
+  .cronograma-impresion-pie p + p { margin-top: 4px; }
+}

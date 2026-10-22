@@ -40,3 +40,10 @@
 @keyframes skeleton-shimmer { to { background-position: -220% 0; } }
 @keyframes loading-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .loading-spinner,.skeleton-line { animation: none; } }
+
+/* Identidad visual de Préstamo Castillo; no altera flujos ni permisos. */
+.sidebar .brand { gap: 12px; }
+.sidebar .brand b { font-size: 17px; line-height: 1.2; letter-spacing: -.02em; }
+.brand-mark-castillo { width: 43px; height: 43px; flex: 0 0 43px; border-radius: 13px; background: linear-gradient(135deg,#3e95f5,#1253bf); color: #fff; font: 800 15px Manrope,Arial,sans-serif; box-shadow: 0 7px 18px #0b305d38; letter-spacing: -.04em; }
+.login-brand .brand-mark-castillo { width: 48px; height: 48px; font-size: 17px; }
+@media(max-width:560px) { .sidebar .brand-mark-castillo { width:35px; height:35px; flex-basis:35px; font-size:12px; } }

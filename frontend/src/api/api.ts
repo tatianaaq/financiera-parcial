@@ -22,8 +22,22 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     window.dispatchEvent(new Event('loan-session-expired'));
     throw new ApiError('Credenciales inválidas o sesión expirada.', 401);
   }
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new ApiError(data.error || data.message || 'No se pudo completar la operación.', response.status, data.fieldErrors || {});
+  const contentType = response.headers.get('content-type') || '';
+  const data: Record<string, unknown> = contentType.includes('application/json')
+    ? await response.json().catch(() => ({}))
+    : {};
+  if (!response.ok) {
+    const fallbacks: Record<number, string> = {
+      403: 'Acceso denegado por el backend. Revisa el rol y la agencia de tu usuario, y consulta la pestaña Response de Network.',
+      404: 'La información solicitada no se encontró.',
+      502: 'El proveedor externo de identidad rechazó la consulta.',
+      503: 'El servicio no está disponible o no se configuró su credencial.',
+    };
+    const message = typeof data.error === 'string' ? data.error : typeof data.message === 'string' ? data.message : (fallbacks[response.status] || `La solicitud falló (HTTP ${response.status}).`);
+    const fieldErrors = data.fieldErrors && typeof data.fieldErrors === 'object' && !Array.isArray(data.fieldErrors)
+      ? data.fieldErrors as Record<string, string> : {};
+    throw new ApiError(message, response.status, fieldErrors);
+  }
   return data as T;
 }
 

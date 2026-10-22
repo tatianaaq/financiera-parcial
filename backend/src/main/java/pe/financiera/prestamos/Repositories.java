@@ -5,7 +5,13 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 import java.util.*;
 
-interface AgencyRepository extends JpaRepository<Agency,Long>{ Optional<Agency> findByName(String name); }
+interface AgencyRepository extends JpaRepository<Agency,Long>{
+ Optional<Agency> findByName(String name);
+ /** Serializa la creación de préstamos dentro de la misma sucursal. */
+ @Lock(LockModeType.PESSIMISTIC_WRITE)
+ @Query("select a from Agency a where a.id=:id")
+ Optional<Agency> findByIdForUpdate(@Param("id") Long id);
+}
 interface UserRepository extends JpaRepository<AppUser,Long>{ Optional<AppUser> findByUsername(String username); List<AppUser> findAllByRole(String role); boolean existsByAgency_IdAndRole(Long agencyId,String role); }
 interface ClientRepository extends JpaRepository<Client,Long>{
  Optional<Client> findByIdAndAgency_Id(Long id,Long agencyId);
@@ -28,6 +34,9 @@ interface LoanRepository extends JpaRepository<Loan,Long>{
  @Query("select coalesce(sum(l.outstandingPrincipal),0) from Loan l where l.client.id=:id and l.status='ACTIVO'") java.math.BigDecimal pendingCapital(@Param("id") Long id);
  @Query("select coalesce(sum(l.outstandingPrincipal),0) from Loan l where l.client.dni=:dni and l.status='ACTIVO'") java.math.BigDecimal pendingCapitalByDni(@Param("dni") String dni);
  @Query("select coalesce(sum(l.principal),0) from Loan l where l.responsibleDni=:dni and l.status='ACTIVO'") java.math.BigDecimal pendingOriginalCapitalByDni(@Param("dni") String dni);
+ /** Cupo de la sucursal: suma de capital ORIGINAL de préstamos activos. */
+ @Query("select coalesce(sum(l.principal),0) from Loan l where l.agency.id=:agencyId and l.status='ACTIVO'")
+ java.math.BigDecimal activeOriginalCapitalByAgency(@Param("agencyId") Long agencyId);
  @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select l from Loan l where l.id=:id") Optional<Loan> findByIdForUpdate(@Param("id") Long id);
  List<Loan> findByClientIdAndStatus(Long clientId,String status);
  List<Loan> findByClientIdOrderByIdDesc(Long clientId);

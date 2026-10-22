@@ -113,9 +113,7 @@ class DniVerificationService {
     }
 
     DniLookupResult lookup(String dni, AppUser user) {
-        if (user.agency == null || !user.agency.enabled || !"ADVISOR".equals(user.role)) {
-            throw new DniLookupException(403, "Solo un asesor de una sede habilitada puede consultar DNI.");
-        }
+        requireActiveAdvisor(user);
         if (clients.existsByDni(dni)) {
             throw new DniLookupException(409, "Este DNI ya se encuentra registrado en el sistema.");
         }
@@ -135,8 +133,7 @@ class DniVerificationService {
 
     /** La vinculación de RUC exige consulta reciente aun cuando el DNI ya existe en la base. */
     DniLookupResult lookupForAssociation(String dni, AppUser user) {
-        if (user.agency == null || !user.agency.enabled || !"ADVISOR".equals(user.role))
-            throw new DniLookupException(403,"Solo un asesor de una sede habilitada puede verificar el DNI.");
+        requireActiveAdvisor(user);
         if (!dni.matches("\\d{8}") || !clients.existsByDni(dni))
             throw new DniLookupException(404,"Primero registra la persona con DNI verificado en Clientes.");
         Instant now=Instant.now();
@@ -150,13 +147,22 @@ class DniVerificationService {
 
     /** Alta integrada desde RUC: verifica DNI aunque no exista como cliente; la BD decide si se reutiliza. */
     VerifiedIdentity verifyForOnboarding(String dni, AppUser user) {
-        if (user.agency == null || !user.agency.enabled || !"ADVISOR".equals(user.role))
-            throw new DniLookupException(403, "Solo un asesor de sede habilitada puede verificar un DNI.");
+        requireActiveAdvisor(user);
         if (dni == null || !dni.matches("\\d{8}"))
             throw new DniLookupException(400, "Ingresa un DNI de ocho dígitos.");
         Instant now = Instant.now();
         enforceRateLimit(user.username, now);
         return fetchOrJoin(dni, dni, now);
+    }
+
+    /** Mensajes específicos sin exponer contraseñas ni los tokens del proveedor. */
+    private void requireActiveAdvisor(AppUser user) {
+        if (user == null || !"ADVISOR".equals(user.role))
+            throw new DniLookupException(403, "Tu usuario no tiene el rol ADVISOR. Entra con una cuenta de asesor o solicita revisar el rol en Supabase.");
+        if (user.agency == null)
+            throw new DniLookupException(403, "Tu cuenta de asesor no tiene agencia asignada. Revisa app_users.agency_id en Supabase.");
+        if (!user.agency.enabled)
+            throw new DniLookupException(403, "Tu agencia está deshabilitada. Revisa agencies.enabled en Supabase.");
     }
 
     private VerifiedIdentity fetchOrJoin(String cacheKey, String dni, Instant now) {

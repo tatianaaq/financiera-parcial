@@ -12,7 +12,7 @@ type Company = {
   domicilio?: { direccion?: string }; representantes?: Representative[];
 };
 export type LinkedDocument = {
-  documentType: 'RUC10' | 'RUC20'; documentNumber: string; clientId: number;
+  id?: number; documentType: 'RUC10' | 'RUC20'; documentNumber: string; clientId: number;
   responsibleDni: string; responsibleName: string; borrowerName: string;
   representativeName?: string; representativeRole?: string; checkedAt: string;
 };
