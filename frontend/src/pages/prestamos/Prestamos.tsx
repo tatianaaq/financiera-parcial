@@ -1038,7 +1038,14 @@ export function Prestamos({
                   className="prestamos-btn-outline"
                   onClick={() => setShowNationalSearch(true)}
               >
-                Consultar cliente
+                Consultar DNI
+              </button>
+              <button
+                  type="button"
+                  className="prestamos-btn-outline"
+                  onClick={goToClients}
+              >
+                Registrar RUC 10 / 20 →
               </button>
 
               {isAdvisor && (

@@ -18,7 +18,8 @@ import type {
 } from '../../types/models';
 
 import { Modal } from '../../components/Modal';
-import type { LinkedDocument } from './RucLookup';
+import { RucLookup, type LinkedDocument } from './RucLookup';
+import type { NationalClient } from './NationalClientSearch';
 import { loanIdentity } from '../../utils/loanIdentity';
 import './Clientes.css';
 
@@ -389,6 +390,7 @@ export function Clientes({
                              me,
                              notify,
                              createLoan,
+                             linkLoan,
                              goToLoans,
                              initialAgencyId,
                              selectedClientId,
@@ -432,6 +434,9 @@ export function Clientes({
     // REGISTRO
     const [registrationOpen, setRegistrationOpen] =
         useState(false);
+
+    // Restaurar el alta unificada de DNI, RUC 10 y RUC 20.
+    const [identityLookupOpen, setIdentityLookupOpen] = useState(false);
 
     const [dni, setDni] = useState('');
     const [identity, setIdentity] =
@@ -1068,6 +1073,13 @@ export function Clientes({
 
                     {/* SOLO NUEVO CLIENTE PARA ASESORES */}
                     <div className="clientes-acciones">
+                        <button
+                            type="button"
+                            className="clientes-consultar-documento"
+                            onClick={() => setIdentityLookupOpen(true)}
+                        >
+                            Consultar DNI / RUC 10 / RUC 20
+                        </button>
                         {isAdvisor && (
                             <button
                                 type="button"
@@ -1766,6 +1778,35 @@ export function Clientes({
                             </div>
                         )}
                     </div>
+                </Modal>
+            )}
+
+            {/* CONSULTA / ALTA RUC: utiliza las rutas ya existentes del backend.
+                Crea y vincula un documento solamente tras la verificación.
+                No registra un préstamo hasta la aceptación en Préstamos. */}
+            {identityLookupOpen && (
+                <Modal
+                    title="Consultar DNI o RUC"
+                    modalClassName="ruc-consult-modal"
+                    close={() => setIdentityLookupOpen(false)}
+                >
+                    <RucLookup
+                        canRegister={isAdvisor && !registrationBlocked}
+                        onNewDni={(newDni: string) => {
+                            setIdentityLookupOpen(false);
+                            resetForm();
+                            changeDni(newDni);
+                            setRegistrationOpen(true);
+                        }}
+                        onExistingDni={(client: NationalClient) => {
+                            setIdentityLookupOpen(false);
+                            createLoan(client.id, client.dni);
+                        }}
+                        onLinked={(link: LinkedDocument) => {
+                            setIdentityLookupOpen(false);
+                            linkLoan(link);
+                        }}
+                    />
                 </Modal>
             )}
 

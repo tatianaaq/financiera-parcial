@@ -698,6 +698,17 @@
   min-height: 0;
 }
 
+/* Modal tiene un contenedor interno .finance-modal-body: sin flex,
+   el formulario crecía fuera del dialog y ocultaba Aceptar y otorgar. */
+#modal.loan-offer-modal .finance-modal-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
 #modal.loan-offer-modal .modal-inner {
   display: flex;
   flex-direction: column;
@@ -876,7 +887,10 @@
   line-height: 1.5;
 }
 
+/* La aceptación es siempre visible mientras el cronograma se desplaza. */
 .loan-offer-footer {
+  position: relative;
+  z-index: 2;
   flex: none;
   min-width: 0;
   padding: 13px 24px 18px;
